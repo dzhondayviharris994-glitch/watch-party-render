@@ -11,8 +11,7 @@
 
 <div class="app" id="app">
 
-    <!-- Видео -->
-    <div class="video-stage">
+    <div class="video-stage" id="videoStage">
         <div id="playerContainer" class="player-container"></div>
         <div class="empty-state" id="emptyState">
             <div class="empty-icon">🎬</div>
@@ -24,7 +23,6 @@
         </div>
     </div>
 
-    <!-- Верхняя панель: комната + участники + ссылка -->
     <div class="top-bar" id="topBar">
         <div class="top-left">
             <div class="room-badge">
@@ -40,7 +38,6 @@
         </div>
     </div>
 
-    <!-- Оверлей с управлением -->
     <div class="controls-overlay" id="controlsOverlay">
         <div class="progress-row">
             <span class="time-mini" id="timeCurrentMini">0:00</span>
@@ -69,10 +66,6 @@
         </div>
     </div>
 
-    <!-- Кнопка показать оверлей (когда скрыт) -->
-    <div class="overlay-trigger" id="overlayTrigger"></div>
-
-    <!-- Чат -->
     <aside class="side-panel chat-panel" id="chatPanel">
         <div class="panel-header">
             <span>Чат</span>
@@ -85,7 +78,6 @@
         </div>
     </aside>
 
-    <!-- История -->
     <aside class="side-panel history-panel" id="historyPanel">
         <div class="panel-header">
             <span>История</span>
@@ -94,7 +86,6 @@
         <div class="history-list" id="historyList"></div>
     </aside>
 
-    <!-- Участники -->
     <aside class="side-panel users-panel" id="usersPanel">
         <div class="panel-header">
             <span>Участники</span>
@@ -103,7 +94,6 @@
         <div class="users-list" id="usersList"></div>
     </aside>
 
-    <!-- Модалка загрузки видео -->
     <div class="modal hidden" id="loadModal">
         <div class="modal-content">
             <h3>Загрузить видео</h3>
@@ -115,7 +105,6 @@
         </div>
     </div>
 
-    <!-- Модалка ника -->
     <div class="modal" id="nickModal">
         <div class="modal-content">
             <h2>Как тебя зовут?</h2>
@@ -124,7 +113,6 @@
         </div>
     </div>
 
-    <!-- Тост для уведомлений -->
     <div class="toast" id="toast"></div>
 
 </div>

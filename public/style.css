@@ -9,7 +9,6 @@
     --text-muted: #888;
     --accent: #6366f1;
     --accent-hover: #818cf8;
-    --danger: #ef4444;
 }
 
 html, body {
@@ -32,9 +31,6 @@ html, body {
     overflow: hidden;
 }
 
-/* ============================================================
-   ВИДЕО
-   ============================================================ */
 .video-stage {
     position: absolute;
     inset: 0;
@@ -53,7 +49,6 @@ html, body {
     background: #000;
 }
 
-/* Пустое состояние */
 .empty-state {
     position: absolute;
     inset: 0;
@@ -110,9 +105,6 @@ html, body {
 
 .btn-primary-lg:hover { background: var(--accent-hover); }
 
-/* ============================================================
-   ВЕРХНЯЯ ПАНЕЛЬ
-   ============================================================ */
 .top-bar {
     position: absolute;
     top: 0;
@@ -179,9 +171,6 @@ html, body {
 
 .top-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: var(--accent); }
 
-/* ============================================================
-   ОВЕРЛЕЙ УПРАВЛЕНИЯ
-   ============================================================ */
 .controls-overlay {
     position: absolute;
     left: 0;
@@ -202,7 +191,6 @@ html, body {
     pointer-events: auto;
 }
 
-/* Прогресс-бар */
 .progress-row {
     display: flex;
     align-items: center;
@@ -254,7 +242,6 @@ html, body {
     border: none;
 }
 
-/* Кнопки */
 .controls-row {
     display: flex;
     justify-content: space-between;
@@ -296,7 +283,6 @@ html, body {
 .ctrl-btn.active { background: var(--accent); }
 .ctrl-main { background: rgba(255, 255, 255, 0.2); font-size: 1.3rem; }
 
-/* Громкость */
 .volume-wrap {
     display: flex;
     align-items: center;
@@ -343,19 +329,6 @@ html, body {
     border: none;
 }
 
-/* Триггер-зона для показа оверлея */
-.overlay-trigger {
-    position: absolute;
-    inset: 0;
-    z-index: 24;
-    cursor: pointer;
-}
-
-.overlay-trigger.hidden { display: none; }
-
-/* ============================================================
-   БОКОВЫЕ ПАНЕЛИ
-   ============================================================ */
 .side-panel {
     position: absolute;
     top: 0;
@@ -408,7 +381,6 @@ html, body {
     gap: 10px;
 }
 
-/* Чат */
 .chat-message {
     background: rgba(255, 255, 255, 0.05);
     padding: 10px 14px;
@@ -480,7 +452,6 @@ html, body {
 
 .btn-send:hover { background: var(--accent-hover); }
 
-/* История */
 .history-item {
     background: rgba(255, 255, 255, 0.05);
     padding: 12px 14px;
@@ -505,7 +476,6 @@ html, body {
 
 .history-item .meta { font-size: 0.75rem; color: var(--text-muted); }
 
-/* Участники */
 .user-item {
     display: flex;
     align-items: center;
@@ -556,9 +526,6 @@ html, body {
     letter-spacing: 0.5px;
 }
 
-/* ============================================================
-   МОДАЛКИ
-   ============================================================ */
 .modal {
     position: fixed;
     inset: 0;
@@ -630,9 +597,6 @@ html, body {
 
 .btn-secondary:hover { background: rgba(255, 255, 255, 0.15); }
 
-/* ============================================================
-   ТОСТ
-   ============================================================ */
 .toast {
     position: fixed;
     bottom: 100px;
@@ -657,9 +621,6 @@ html, body {
     transform: translateX(-50%) translateY(0);
 }
 
-/* ============================================================
-   МОБИЛЬНАЯ АДАПТАЦИЯ
-   ============================================================ */
 @media (max-width: 768px) {
     .top-bar { padding: 12px 14px; }
     .top-btn { padding: 7px 12px; font-size: 0.8rem; }
@@ -686,8 +647,6 @@ html, body {
 
     .ctrl-main { font-size: 1.15rem; }
 
-    /* Скрываем кнопки перемотки на маленьких экранах? Нет, оставляем — полезно */
-    /* Громкость — только иконка, слайдер скрыт */
     .volume-slider {
         position: absolute;
         bottom: 50px;
@@ -723,18 +682,13 @@ html, body {
     .controls-overlay { padding: 12px 10px max(14px, env(safe-area-inset-bottom)); }
 }
 
-/* Мобильная ориентация — ландшафт */
 @media (max-height: 500px) and (orientation: landscape) {
     .controls-overlay { padding: 8px 16px max(10px, env(safe-area-inset-bottom)); }
     .progress-row { margin-bottom: 6px; }
     .ctrl-btn { width: 38px; height: 38px; }
 }
 
-/* Скроллбар */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.25); }
-
-/* Скрытие оверлея при отсутствии видео */
-.controls-overlay.hidden { display: none; }

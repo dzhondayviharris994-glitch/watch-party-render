@@ -12,7 +12,6 @@ if (!roomId) {
     roomId = Math.random().toString(36).substring(2, 8);
     const newUrl = window.location.pathname + `?room=${roomId}`;
     window.history.replaceState({}, '', newUrl);
-    // Помечаем: этот юзер создал комнату → скорее всего будет хостом
 }
 
 // ============================================================
@@ -40,7 +39,6 @@ const copyLinkBtn = document.getElementById('copyLinkBtn');
 const usersBtn = document.getElementById('usersBtn');
 const usersCount = document.getElementById('usersCount');
 const controlsOverlay = document.getElementById('controlsOverlay');
-const overlayTrigger = document.getElementById('overlayTrigger');
 const playPauseBtn = document.getElementById('playPauseBtn');
 const rewindBtn = document.getElementById('rewindBtn');
 const forwardBtn = document.getElementById('forwardBtn');
@@ -98,7 +96,7 @@ window.onYouTubeIframeAPIReady = function() {
 };
 
 // ============================================================
-//  ПАРСИНГ
+//  ПАРСИНГ ССЫЛОК
 // ============================================================
 function parseUrl(url) {
     url = url.trim();
@@ -125,7 +123,6 @@ function destroyPlayer() {
 function createYouTubePlayer(videoId) {
     destroyPlayer();
     emptyState.classList.add('hidden');
-    controlsOverlay.classList.remove('hidden');
 
     const div = document.createElement('div');
     div.id = 'yt-player';
@@ -144,7 +141,7 @@ function createYouTubePlayer(videoId) {
             onReady: () => {
                 setVolume(currentVolume);
                 startSeekUpdater();
-                showControlsTemporarily();
+                showControls();
             },
             onStateChange: (e) => {
                 updatePlayButton();
@@ -163,7 +160,6 @@ function createYouTubePlayer(videoId) {
 function createVideoPlayer(url) {
     destroyPlayer();
     emptyState.classList.add('hidden');
-    controlsOverlay.classList.remove('hidden');
 
     const video = document.createElement('video');
     video.src = url;
@@ -192,7 +188,7 @@ function createVideoPlayer(url) {
     player = video;
     playerType = 'video';
     startSeekUpdater();
-    showControlsTemporarily();
+    showControls();
 }
 
 async function loadVideo(url, { broadcast = true, title = '' } = {}) {
@@ -221,6 +217,9 @@ async function loadVideo(url, { broadcast = true, title = '' } = {}) {
     }
 }
 
+// ============================================================
+//  УПРАВЛЕНИЕ ПЛЕЕРОМ
+// ============================================================
 function togglePlay() {
     if (!player) return;
     if (playerType === 'youtube') {
@@ -231,7 +230,7 @@ function togglePlay() {
         if (player.paused) player.play();
         else player.pause();
     }
-    showControlsTemporarily();
+    showControls();
 }
 
 function seekRelative(seconds) {
@@ -247,9 +246,8 @@ function seekRelative(seconds) {
         socket.emit('sync', { action: 'seek', time: newTime });
     } else {
         player.currentTime = newTime;
-        // seeked event сам emit-нет
     }
-    showControlsTemporarily();
+    showControls();
 }
 
 function setVolume(v) {
@@ -325,7 +323,7 @@ function startSeekUpdater() {
 }
 
 // ============================================================
-//  СОБЫТИЯ UI
+//  ОБРАБОТЧИКИ UI
 // ============================================================
 playPauseBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePlay(); });
 rewindBtn.addEventListener('click', (e) => { e.stopPropagation(); seekRelative(-10); });
@@ -367,7 +365,7 @@ seekBar.addEventListener('change', (e) => {
         player.currentTime = newTime;
     }
     isSeeking = false;
-    showControlsTemporarily();
+    showControls();
 });
 
 loadNewBtn.addEventListener('click', (e) => {
@@ -393,7 +391,6 @@ modalUrlInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') modalLoadBtn.click();
 });
 
-// Пустое состояние
 emptyLoadBtn.addEventListener('click', () => {
     const url = emptyUrlInput.value.trim();
     if (!url) return;
@@ -405,7 +402,6 @@ emptyUrlInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') emptyLoadBtn.click();
 });
 
-// Фуллскрин
 fullscreenBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     const el = document.documentElement;
@@ -478,13 +474,12 @@ socket.on('host changed', ({ nickname: n }) => {
 });
 
 // ============================================================
-//  ЮЗЕРЫ
+//  УЧАСТНИКИ
 // ============================================================
 function renderUsers(users) {
     usersCount.textContent = users.length;
     usersList.innerHTML = '';
 
-    // Сортируем: хост первым
     const sorted = [...users].sort((a, b) => (b.isHost ? 1 : 0) - (a.isHost ? 1 : 0));
 
     sorted.forEach(u => {
@@ -619,17 +614,15 @@ document.getElementById('historyClose').addEventListener('click', closeAllPanels
 document.getElementById('usersClose').addEventListener('click', closeAllPanels);
 
 // ============================================================
-//  ОВЕРЛЕЙ — авто-скрытие
+//  ОВЕРЛЕЙ — показ/скрытие
 // ============================================================
 function showControls() {
     controlsOverlay.classList.add('visible');
     topBar.classList.add('visible');
-    overlayTrigger.classList.add('hidden');
     resetAutoHide();
 }
 
 function hideControls() {
-    // Не скрываем, если открыта панель или модалка
     if (chatPanel.classList.contains('visible')) return;
     if (historyPanel.classList.contains('visible')) return;
     if (usersPanel.classList.contains('visible')) return;
@@ -638,41 +631,51 @@ function hideControls() {
 
     controlsOverlay.classList.remove('visible');
     topBar.classList.remove('visible');
-    overlayTrigger.classList.remove('hidden');
     clearTimeout(autoHideTimer);
-}
-
-function showControlsTemporarily() {
-    showControls();
 }
 
 function resetAutoHide() {
     clearTimeout(autoHideTimer);
-    autoHideTimer = setTimeout(hideControls, 3500);
+    autoHideTimer = setTimeout(hideControls, 3000);
 }
 
-// Клик по видео — показать/скрыть оверлей
-overlayTrigger.addEventListener('click', () => {
-    showControls();
+// ═══════════════════════════════════════════════════════════════
+//  ПОКАЗ ОВЕРЛЕЯ ПО ДВИЖЕНИЮ МЫШИ / ТАПУ (как в YouTube)
+// ═══════════════════════════════════════════════════════════════
+
+let lastMoveTime = 0;
+document.addEventListener('mousemove', () => {
+    const now = Date.now();
+    if (now - lastMoveTime < 80) return;
+    lastMoveTime = now;
+
+    if (!controlsOverlay.classList.contains('visible')) {
+        showControls();
+    } else {
+        resetAutoHide();
+    }
 });
 
-// События движения мыши над оверлеем — продлить
-controlsOverlay.addEventListener('mousemove', resetAutoHide);
-controlsOverlay.addEventListener('touchstart', resetAutoHide);
-topBar.addEventListener('mousemove', resetAutoHide);
-
-// Клик вне — скрыть оверлей
-document.addEventListener('click', (e) => {
-    if (!controlsOverlay.classList.contains('visible')) return;
+document.addEventListener('touchstart', (e) => {
     if (e.target.closest('.controls-overlay')) return;
     if (e.target.closest('.top-bar')) return;
     if (e.target.closest('.side-panel')) return;
     if (e.target.closest('.modal')) return;
-    hideControls();
-});
+
+    if (!controlsOverlay.classList.contains('visible')) {
+        showControls();
+    } else {
+        resetAutoHide();
+    }
+}, { passive: true });
+
+controlsOverlay.addEventListener('mousemove', resetAutoHide);
+topBar.addEventListener('mousemove', resetAutoHide);
 
 // Двойной клик по видео — фуллскрин
-overlayTrigger.addEventListener('dblclick', () => {
+document.getElementById('videoStage').addEventListener('dblclick', (e) => {
+    if (e.target.closest('.controls-overlay')) return;
+    if (e.target.closest('.top-bar')) return;
     fullscreenBtn.click();
 });
 
@@ -695,7 +698,6 @@ copyLinkBtn.addEventListener('click', () => {
     navigator.clipboard.writeText(url).then(() => {
         showToast('🔗 Ссылка скопирована!');
     }).catch(() => {
-        // Fallback
         const ta = document.createElement('textarea');
         ta.value = url;
         document.body.appendChild(ta);
@@ -711,7 +713,7 @@ copyLinkBtn.addEventListener('click', () => {
 // ============================================================
 function startSession(nick) {
     nickname = nick;
-    localStorage.setItem('wp_nickname', nick);
+    sessionStorage.setItem('wp_nickname', nick);
     socket.emit('join room', { roomId, nickname: nick });
     nickModal.classList.add('hidden');
     addSystemMessage(`Ты в комнате ${roomId}`);
@@ -734,12 +736,16 @@ nickInput.addEventListener('keydown', (e) => {
 loadYouTubeAPI();
 setVolume(1);
 
-const savedNick = localStorage.getItem('wp_nickname');
-if (savedNick) nickInput.value = savedNick;
-setTimeout(() => nickInput.focus(), 200);
+const savedNick = sessionStorage.getItem('wp_nickname');
+if (savedNick) {
+    nickModal.classList.add('hidden');
+    startSession(savedNick);
+} else {
+    setTimeout(() => nickInput.focus(), 200);
+}
 
 // ============================================================
-//  КЛАВИАТУРА
+//  ГОРЯЧИЕ КЛАВИШИ
 // ============================================================
 document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT') return;
