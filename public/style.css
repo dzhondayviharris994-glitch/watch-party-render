@@ -9,6 +9,7 @@
     --text-muted: #888;
     --accent: #6366f1;
     --accent-hover: #818cf8;
+    --danger: #ef4444;
 }
 
 html, body {
@@ -58,7 +59,6 @@ html, body {
     background: #000;
 }
 
-/* Пустое состояние */
 .empty-state {
     position: absolute;
     inset: 0;
@@ -116,15 +116,72 @@ html, body {
 
 .btn-primary-lg:hover { background: var(--accent-hover); }
 
-/* Плавающая кнопка — только мобила, только когда есть видео */
-.floating-btn { display: none; }
+/* Плавающая кнопка чата */
+.chat-float {
+    position: absolute;
+    bottom: 24px;
+    right: 24px;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #fff;
+    font-size: 1.5rem;
+    cursor: pointer;
+    z-index: 35;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    padding: 0;
+    line-height: 1;
+}
+
+.chat-float:hover {
+    background: rgba(99, 102, 241, 0.85);
+    transform: scale(1.06);
+}
+
+.chat-float.active {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.chat-float-icon { display: inline-block; }
+
+.chat-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 22px;
+    height: 22px;
+    border-radius: 11px;
+    background: var(--danger);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 6px;
+    border: 2px solid #000;
+    animation: badgePop 0.3s cubic-bezier(0.4, 1.6, 0.6, 1);
+    pointer-events: none;
+}
+
+@keyframes badgePop {
+    0% { transform: scale(0); }
+    100% { transform: scale(1); }
+}
 
 /* TOP BAR */
 .top-bar {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 0; left: 0; right: 0;
     padding: 16px 20px;
     display: flex;
     justify-content: space-between;
@@ -137,10 +194,8 @@ html, body {
 }
 
 .top-bar.visible { opacity: 1; }
-
 .top-bar .top-btn,
 .top-bar .room-badge { pointer-events: none; }
-
 .top-bar.visible .top-btn,
 .top-bar.visible .room-badge { pointer-events: auto; }
 
@@ -158,8 +213,7 @@ html, body {
 }
 
 .room-dot {
-    width: 8px;
-    height: 8px;
+    width: 8px; height: 8px;
     border-radius: 50%;
     background: #10b981;
     box-shadow: 0 0 8px #10b981;
@@ -195,9 +249,7 @@ html, body {
 /* CONTROLS OVERLAY */
 .controls-overlay {
     position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    left: 0; right: 0; bottom: 0;
     padding: 20px 20px 24px;
     background: linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.5) 60%, transparent);
     z-index: 25;
@@ -245,8 +297,7 @@ html, body {
 
 .seek-bar::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 14px;
-    height: 14px;
+    width: 14px; height: 14px;
     border-radius: 50%;
     background: #fff;
     cursor: pointer;
@@ -254,8 +305,7 @@ html, body {
 }
 
 .seek-bar::-moz-range-thumb {
-    width: 14px;
-    height: 14px;
+    width: 14px; height: 14px;
     border-radius: 50%;
     background: #fff;
     cursor: pointer;
@@ -276,8 +326,7 @@ html, body {
 }
 
 .ctrl-btn {
-    width: 44px;
-    height: 44px;
+    width: 44px; height: 44px;
     border-radius: 50%;
     border: none;
     background: rgba(255, 255, 255, 0.1);
@@ -294,20 +343,12 @@ html, body {
     flex-shrink: 0;
 }
 
-.ctrl-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: scale(1.08);
-}
-
+.ctrl-btn:hover { background: rgba(255, 255, 255, 0.2); transform: scale(1.08); }
 .ctrl-btn:active { transform: scale(0.95); }
 .ctrl-btn.active { background: var(--accent); }
 .ctrl-main { background: rgba(255, 255, 255, 0.2); font-size: 1.3rem; }
 
-#qualityBtn {
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-}
+#qualityBtn { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; }
 
 .volume-wrap {
     display: flex;
@@ -339,16 +380,14 @@ html, body {
 
 .volume-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 12px;
-    height: 12px;
+    width: 12px; height: 12px;
     border-radius: 50%;
     background: #fff;
     cursor: pointer;
 }
 
 .volume-slider::-moz-range-thumb {
-    width: 12px;
-    height: 12px;
+    width: 12px; height: 12px;
     border-radius: 50%;
     background: #fff;
     cursor: pointer;
@@ -367,16 +406,12 @@ html, body {
     transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.app.chat-open .chat-panel {
-    width: 360px;
-}
+.app.chat-open .chat-panel { width: 360px; }
 
 /* SIDE PANELS */
 .side-panel {
     position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
+    top: 0; right: 0; bottom: 0;
     width: 360px;
     max-width: 100%;
     background: var(--panel);
@@ -486,8 +521,7 @@ html, body {
 .chat-input:focus { border-color: var(--accent); }
 
 .btn-send {
-    width: 46px;
-    height: 46px;
+    width: 46px; height: 46px;
     border-radius: 50%;
     border: none;
     background: var(--accent);
@@ -534,8 +568,7 @@ html, body {
 }
 
 .user-avatar {
-    width: 38px;
-    height: 38px;
+    width: 38px; height: 38px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--accent), #8b5cf6);
     color: #fff;
@@ -557,11 +590,7 @@ html, body {
     white-space: nowrap;
 }
 
-.user-role {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    margin-top: 2px;
-}
+.user-role { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
 
 .user-host-badge {
     font-size: 0.7rem;
@@ -618,11 +647,7 @@ html, body {
 
 .modal-input:focus { border-color: var(--accent); }
 
-.modal-actions {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-}
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
 
 .btn-primary, .btn-secondary {
     padding: 12px 22px;
@@ -638,11 +663,7 @@ html, body {
 .btn-primary { background: var(--accent); color: #fff; width: 100%; }
 .btn-primary:hover { background: var(--accent-hover); }
 
-.btn-secondary {
-    background: rgba(255, 255, 255, 0.08);
-    color: var(--text);
-}
-
+.btn-secondary { background: rgba(255, 255, 255, 0.08); color: var(--text); }
 .btn-secondary:hover { background: rgba(255, 255, 255, 0.15); }
 
 .toast {
@@ -664,60 +685,23 @@ html, body {
     text-align: center;
 }
 
-.toast.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ГОСТЕВОЙ РЕЖИМ: блокируем управление видео */
+body.guest-mode #playPauseBtn,
+body.guest-mode #rewindBtn,
+body.guest-mode #forwardBtn,
+body.guest-mode #qualityBtn,
+body.guest-mode #seekBar {
+    opacity: 0.35;
+    pointer-events: none;
+    cursor: not-allowed;
 }
 
-/* ========= МОБИЛЬНАЯ АДАПТАЦИЯ ========= */
+/* МОБИЛЬНАЯ АДАПТАЦИЯ */
 @media (max-width: 900px) {
-
-    /* Плавающая кнопка ≡ — показывается на мобиле, если есть видео */
-    .app.has-player .floating-btn {
-        display: flex;
-        position: absolute;
-        bottom: 16px;
-        right: 16px;
-        width: 52px;
-        height: 52px;
-        border-radius: 50%;
-        background: rgba(0, 0, 0, 0.65);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        color: #fff;
-        font-size: 1.7rem;
-        font-weight: 700;
-        line-height: 1;
-        z-index: 26;
-        cursor: pointer;
-        align-items: center;
-        justify-content: center;
-        padding: 0 0 8px 0;
-        transition: background 0.2s, transform 0.15s;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-    }
-
-    .app.has-player .floating-btn:active {
-        transform: scale(0.9);
-        background: rgba(99, 102, 241, 0.7);
-    }
-
-    /* Прячем кнопку, когда оверлей открыт — он уже перекрывает угол */
-    .app.has-player .floating-btn.hidden {
-        display: none;
-    }
-
-    /* Портрет: чат снизу */
-    .main-layout {
-        flex-direction: column;
-    }
-
-    .video-stage {
-        flex: 1 1 auto;
-        min-height: 0;
-    }
-
+    .main-layout { flex-direction: column; }
+    .video-stage { flex: 1 1 auto; min-height: 0; }
     .chat-panel {
         width: 100% !important;
         max-width: 100%;
@@ -727,35 +711,21 @@ html, body {
         border-top: 1px solid var(--border);
         transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     }
-
     .app.chat-open .chat-panel {
         height: auto;
         max-height: 55vh;
     }
-
     .side-panel { width: 100%; }
 
-    /* Меньше кнопки на мобиле */
-    .ctrl-btn {
-        width: 42px;
-        height: 42px;
-        font-size: 1rem;
-    }
-
+    .ctrl-btn { width: 42px; height: 42px; font-size: 1rem; }
     .ctrl-main { font-size: 1.15rem; }
-
     #qualityBtn { font-size: 0.7rem; }
 
-    .controls-overlay {
-        padding: 14px 12px max(16px, env(safe-area-inset-bottom));
-    }
-
+    .controls-overlay { padding: 14px 12px max(16px, env(safe-area-inset-bottom)); }
     .progress-row { gap: 8px; margin-bottom: 10px; }
     .time-mini { font-size: 0.72rem; min-width: 36px; }
-
     .seek-bar { height: 4px; }
     .seek-bar::-webkit-slider-thumb { width: 18px; height: 18px; }
-
     .controls-row { gap: 8px; }
     .controls-group { gap: 6px; }
 
@@ -771,47 +741,32 @@ html, body {
         border-radius: 8px;
         height: 8px;
     }
-
     .volume-wrap:hover .volume-slider,
-    .volume-wrap.open .volume-slider {
-        width: 120px;
-        opacity: 1;
-    }
+    .volume-wrap.open .volume-slider { width: 120px; opacity: 1; }
 
     .empty-icon { font-size: 3.5rem; }
     .empty-text { font-size: 0.9rem; }
     .empty-input-wrap { flex-direction: column; }
     .empty-input { min-width: 0; width: 100%; }
     .btn-primary-lg { width: 100%; }
-
     .modal-content { padding: 24px; }
+
+    .chat-float {
+        width: 50px; height: 50px;
+        font-size: 1.35rem;
+        bottom: 16px; right: 16px;
+    }
 }
 
 @media (max-width: 480px) {
     .ctrl-btn { width: 40px; height: 40px; font-size: 0.95rem; }
     .controls-overlay { padding: 12px 10px max(14px, env(safe-area-inset-bottom)); }
-
-    .app.has-player .floating-btn {
-        width: 48px;
-        height: 48px;
-        font-size: 1.5rem;
-        bottom: 12px;
-        right: 12px;
-    }
+    .chat-float { width: 46px; height: 46px; font-size: 1.25rem; bottom: 14px; right: 14px; }
 }
 
-/* Ландшафт на мобиле: чат справа */
 @media (max-width: 900px) and (orientation: landscape) {
-    .main-layout {
-        flex-direction: row;
-    }
-
-    .video-stage {
-        flex: 1 1 auto;
-        min-height: 0;
-        max-height: 100%;
-    }
-
+    .main-layout { flex-direction: row; }
+    .video-stage { flex: 1 1 auto; min-height: 0; max-height: 100%; }
     .chat-panel {
         width: 0 !important;
         height: 100% !important;
@@ -820,29 +775,11 @@ html, body {
         border-top: none;
         transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     }
-
-    .app.chat-open .chat-panel {
-        width: 320px !important;
-        height: 100% !important;
-    }
-
+    .app.chat-open .chat-panel { width: 320px !important; height: 100% !important; }
     .controls-overlay { padding: 8px 16px max(10px, env(safe-area-inset-bottom)); }
     .progress-row { margin-bottom: 6px; }
     .ctrl-btn { width: 38px; height: 38px; }
-
-    .app.has-player .floating-btn {
-        bottom: 12px;
-        right: 12px;
-        width: 44px;
-        height: 44px;
-        font-size: 1.4rem;
-    }
-}
-
-/* В fullscreen прячем плавающую кнопку */
-.video-stage:fullscreen .floating-btn,
-.video-stage:-webkit-full-screen .floating-btn {
-    display: none !important;
+    .chat-float { bottom: 12px; right: 12px; width: 44px; height: 44px; font-size: 1.2rem; }
 }
 
 ::-webkit-scrollbar { width: 6px; }

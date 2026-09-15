@@ -6,9 +6,7 @@ const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-    cors: { origin: '*' }
-});
+const io = new Server(server, { cors: { origin: '*' } });
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -24,7 +22,7 @@ try {
 function saveData() {
     try {
         fs.writeFileSync(HISTORY_FILE, JSON.stringify(roomsData, null, 2), 'utf-8');
-    } catch (e) { console.error('Save error:', e); }
+    } catch (e) {}
 }
 
 function getRoom(roomId) {
@@ -50,7 +48,6 @@ io.on('connection', (socket) => {
 
         const room = getRoom(roomId);
 
-        // Первый вошедший становится хостом
         let isHost = false;
         if (!room.hostId) {
             room.hostId = socket.id;
@@ -59,7 +56,6 @@ io.on('connection', (socket) => {
             isHost = true;
         }
 
-        // Сохраняем пользователя
         room.users[socket.id] = {
             nickname: socket.data.nickname,
             isHost: isHost,
@@ -68,7 +64,6 @@ io.on('connection', (socket) => {
 
         saveData();
 
-        // Отправляем текущее состояние
         socket.emit('room state', {
             currentVideo: room.currentVideo,
             history: room.history,
@@ -76,36 +71,58 @@ io.on('connection', (socket) => {
             users: Object.values(room.users)
         });
 
-        // Остальным — что зашёл новый
         socket.to(roomId).emit('user joined', {
             id: socket.id,
             nickname: socket.data.nickname,
             isHost: isHost
         });
 
-        // Всем — обновлённый список
         io.to(roomId).emit('users update', Object.values(room.users));
-
         console.log(`${socket.data.nickname} → ${roomId} ${isHost ? '(HOST)' : '(guest)'}`);
     });
 
+    // Хост шлёт текущее время и статус воспроизведения
+    socket.on('sync state', ({ time, isPlaying }) => {
+        const roomId = socket.data.roomId;
+        if (!roomId) return;
+        const room = getRoom(roomId);
+        if (room.hostId !== socket.id) return;
+        if (!room.currentVideo) return;
+
+        room.currentVideo.time = time;
+        room.currentVideo.isPlaying = isPlaying;
+    });
+
+    // Хост шлёт action (play/pause/seek)
     socket.on('sync', ({ action, time }) => {
         const roomId = socket.data.roomId;
         if (!roomId) return;
+        const room = getRoom(roomId);
+        if (room.hostId !== socket.id) return; // только хост
+
         socket.to(roomId).emit('sync', { action, time, from: socket.data.nickname });
+
+        if (room.currentVideo) {
+            room.currentVideo.time = time;
+            if (action === 'play') room.currentVideo.isPlaying = true;
+            if (action === 'pause') room.currentVideo.isPlaying = false;
+        }
     });
 
     socket.on('load video', ({ url, type, title }) => {
         const roomId = socket.data.roomId;
         if (!roomId) return;
-
         const room = getRoom(roomId);
+        if (room.hostId !== socket.id) return; // только хост
+
         const videoData = {
             url,
             type,
             title: title || url,
             addedBy: socket.data.nickname,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            time: 0,
+            isPlaying: true
         };
 
         room.currentVideo = videoData;
@@ -137,7 +154,6 @@ io.on('connection', (socket) => {
             const room = getRoom(roomId);
             delete room.users[socket.id];
 
-            // Если хост вышел — передаём права первому оставшемуся
             if (room.hostId === socket.id) {
                 const remaining = Object.keys(room.users);
                 if (remaining.length > 0) {

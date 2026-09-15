@@ -22,15 +22,19 @@ let playerType = null;
 let suppressEvents = false;
 let autoHideTimer = null;
 let seekUpdateInterval = null;
+let hostSyncInterval = null;
 let isSeeking = false;
 let currentVolume = 1;
 let previousVolume = 1;
+let unreadCount = 0;
+let audioCtx = null;
 
 // ============================================================
 //  DOM
 // ============================================================
 const app = document.getElementById('app');
 const videoStage = document.getElementById('videoStage');
+const mainLayout = document.getElementById('mainLayout');
 const playerContainer = document.getElementById('playerContainer');
 const emptyState = document.getElementById('emptyState');
 const emptyUrlInput = document.getElementById('emptyUrlInput');
@@ -41,7 +45,6 @@ const copyLinkBtn = document.getElementById('copyLinkBtn');
 const usersBtn = document.getElementById('usersBtn');
 const usersCount = document.getElementById('usersCount');
 const controlsOverlay = document.getElementById('controlsOverlay');
-const floatingBtn = document.getElementById('floatingBtn');
 const playPauseBtn = document.getElementById('playPauseBtn');
 const rewindBtn = document.getElementById('rewindBtn');
 const forwardBtn = document.getElementById('forwardBtn');
@@ -52,7 +55,6 @@ const loadNewBtn = document.getElementById('loadNewBtn');
 const seekBar = document.getElementById('seekBar');
 const timeCurrentMini = document.getElementById('timeCurrentMini');
 const timeTotalMini = document.getElementById('timeTotalMini');
-const chatToggle = document.getElementById('chatToggle');
 const historyToggle = document.getElementById('historyToggle');
 const fullscreenBtn = document.getElementById('fullscreenBtn');
 const chatPanel = document.getElementById('chatPanel');
@@ -71,6 +73,44 @@ const nickModal = document.getElementById('nickModal');
 const nickInput = document.getElementById('nickInput');
 const nickBtn = document.getElementById('nickBtn');
 const toast = document.getElementById('toast');
+const chatFloat = document.getElementById('chatFloat');
+const chatBadge = document.getElementById('chatBadge');
+
+// ============================================================
+//  ЗВУК УВЕДОМЛЕНИЯ (WebAudio)
+// ============================================================
+function ensureAudio() {
+    if (!audioCtx) {
+        try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {}
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+}
+
+document.addEventListener('click', ensureAudio);
+document.addEventListener('touchstart', ensureAudio, { passive: true });
+
+function playNotificationSound() {
+    ensureAudio();
+    if (!audioCtx) return;
+    try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, now);
+        osc.frequency.exponentialRampToValueAtTime(1320, now + 0.08);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+        osc.start(now);
+        osc.stop(now + 0.2);
+    } catch (e) {}
+}
 
 // ============================================================
 //  YOUTUBE API
@@ -127,7 +167,6 @@ function destroyPlayer() {
 function createYouTubePlayer(videoId) {
     destroyPlayer();
     emptyState.classList.add('hidden');
-    app.classList.add('has-player');
 
     const div = document.createElement('div');
     div.id = 'yt-player';
@@ -152,10 +191,13 @@ function createYouTubePlayer(videoId) {
                     if (player.setPlaybackQuality) player.setPlaybackQuality('hd1080');
                 } catch (e) {}
                 qualityBtn.textContent = 'HD';
+                // Сообщаем что плеер готов
+                playerContainer.dataset.ready = '1';
             },
             onStateChange: (e) => {
                 updatePlayButton();
                 if (suppressEvents) return;
+                if (!isHost) return;
                 const time = player.getCurrentTime();
                 if (e.data === YT.PlayerState.PLAYING) {
                     socket.emit('sync', { action: 'play', time });
@@ -170,7 +212,6 @@ function createYouTubePlayer(videoId) {
 function createVideoPlayer(url) {
     destroyPlayer();
     emptyState.classList.add('hidden');
-    app.classList.add('has-player');
 
     const video = document.createElement('video');
     video.src = url;
@@ -182,15 +223,18 @@ function createVideoPlayer(url) {
     video.addEventListener('play', () => {
         updatePlayButton();
         if (suppressEvents) return;
+        if (!isHost) return;
         socket.emit('sync', { action: 'play', time: video.currentTime });
     });
     video.addEventListener('pause', () => {
         updatePlayButton();
         if (suppressEvents) return;
+        if (!isHost) return;
         socket.emit('sync', { action: 'pause', time: video.currentTime });
     });
     video.addEventListener('seeked', () => {
         if (suppressEvents) return;
+        if (!isHost) return;
         socket.emit('sync', { action: 'seek', time: video.currentTime });
     });
     video.addEventListener('loadedmetadata', () => { updatePlayButton(); updateTotalTime(); });
@@ -201,6 +245,7 @@ function createVideoPlayer(url) {
     qualityBtn.textContent = 'HD';
     startSeekUpdater();
     showControls();
+    playerContainer.dataset.ready = '1';
 }
 
 async function loadVideo(url, { broadcast = true, title = '' } = {}) {
@@ -217,6 +262,8 @@ async function loadVideo(url, { broadcast = true, title = '' } = {}) {
     }
     if (!videoTitle) videoTitle = url;
 
+    playerContainer.dataset.ready = '0';
+
     if (parsed.type === 'youtube') {
         if (ytReady) createYouTubePlayer(parsed.id);
         else ytQueued = { videoId: parsed.id };
@@ -224,16 +271,17 @@ async function loadVideo(url, { broadcast = true, title = '' } = {}) {
         createVideoPlayer(parsed.url);
     }
 
-    if (broadcast) {
+    if (broadcast && isHost) {
         socket.emit('load video', { url: parsed.url, type: parsed.type, title: videoTitle });
     }
 }
 
 // ============================================================
-//  УПРАВЛЕНИЕ
+//  УПРАВЛЕНИЕ (только хост)
 // ============================================================
 function togglePlay() {
     if (!player) return;
+    if (!isHost) { showToast('Только хост управляет'); return; }
     if (playerType === 'youtube') {
         const state = player.getPlayerState();
         if (state === YT.PlayerState.PLAYING) player.pauseVideo();
@@ -247,6 +295,7 @@ function togglePlay() {
 
 function seekRelative(seconds) {
     if (!player) return;
+    if (!isHost) { showToast('Только хост управляет'); return; }
     const cur = getCurrentTime();
     const dur = getDuration();
     let newTime = cur + seconds;
@@ -260,6 +309,27 @@ function seekRelative(seconds) {
         player.currentTime = newTime;
     }
     showControls();
+}
+
+function doSeek(newTime) {
+    if (!player) return;
+    if (playerType === 'youtube') {
+        player.seekTo(newTime, true);
+    } else {
+        player.currentTime = newTime;
+    }
+}
+
+function doPlay() {
+    if (!player) return;
+    if (playerType === 'youtube') player.playVideo();
+    else player.play();
+}
+
+function doPause() {
+    if (!player) return;
+    if (playerType === 'youtube') player.pauseVideo();
+    else player.pause();
 }
 
 function setVolume(v) {
@@ -306,6 +376,12 @@ function getDuration() {
     return player.duration || 0;
 }
 
+function isPlaying() {
+    if (!player) return false;
+    if (playerType === 'youtube') return player.getPlayerState && player.getPlayerState() === YT.PlayerState.PLAYING;
+    return !player.paused;
+}
+
 function formatTime(sec) {
     if (!sec || isNaN(sec)) return '0:00';
     sec = Math.floor(sec);
@@ -316,9 +392,7 @@ function formatTime(sec) {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
 }
 
-function updateTotalTime() {
-    timeTotalMini.textContent = formatTime(getDuration());
-}
+function updateTotalTime() { timeTotalMini.textContent = formatTime(getDuration()); }
 
 function startSeekUpdater() {
     if (seekUpdateInterval) clearInterval(seekUpdateInterval);
@@ -335,33 +409,43 @@ function startSeekUpdater() {
 }
 
 // ============================================================
+//  ХОСТ-СИНХРОНИЗАЦИЯ (каждые 2 сек)
+// ============================================================
+function startHostSync() {
+    if (!isHost) return;
+    if (hostSyncInterval) clearInterval(hostSyncInterval);
+    hostSyncInterval = setInterval(() => {
+        if (!player) return;
+        socket.emit('sync state', {
+            time: getCurrentTime(),
+            isPlaying: isPlaying()
+        });
+    }, 2000);
+}
+
+function stopHostSync() {
+    if (hostSyncInterval) { clearInterval(hostSyncInterval); hostSyncInterval = null; }
+}
+
+// ============================================================
 //  КАЧЕСТВО
 // ============================================================
 const QUALITIES = ['hd1080', 'hd720', 'large', 'medium', 'small'];
-const QUALITY_LABELS = {
-    hd1080: '1080p', hd720: '720p', large: '480p', medium: '360p', small: '240p'
-};
+const QUALITY_LABELS = { hd1080: '1080p', hd720: '720p', large: '480p', medium: '360p', small: '240p' };
 
 function cycleQuality() {
-    if (playerType !== 'youtube' || !player) {
-        showToast('Качество доступно только для YouTube');
-        return;
-    }
+    if (!isHost) { showToast('Только хост'); return; }
+    if (playerType !== 'youtube' || !player) { showToast('Только для YouTube'); return; }
     let currentQ = 'medium';
-    try {
-        if (player.getPlaybackQuality) currentQ = player.getPlaybackQuality();
-    } catch (e) {}
-
+    try { if (player.getPlaybackQuality) currentQ = player.getPlaybackQuality(); } catch (e) {}
     let idx = QUALITIES.indexOf(currentQ);
     if (idx === -1) idx = 0;
     idx = (idx - 1 + QUALITIES.length) % QUALITIES.length;
     const q = QUALITIES[idx];
-
     try {
         if (player.setPlaybackQualityRange) player.setPlaybackQualityRange(q, q);
         if (player.setPlaybackQuality) player.setPlaybackQuality(q);
     } catch (e) {}
-
     qualityBtn.textContent = QUALITY_LABELS[q] || 'HD';
     showToast(`Качество: ${QUALITY_LABELS[q] || q}`);
 }
@@ -397,6 +481,7 @@ seekBar.addEventListener('input', (e) => {
 });
 seekBar.addEventListener('change', (e) => {
     if (!player) return;
+    if (!isHost) { showToast('Только хост управляет'); return; }
     const dur = getDuration();
     const newTime = (e.target.value / 100) * dur;
     if (playerType === 'youtube') {
@@ -411,6 +496,7 @@ seekBar.addEventListener('change', (e) => {
 
 loadNewBtn.addEventListener('click', (e) => {
     e.stopPropagation();
+    if (!isHost) { showToast('Только хост может грузить видео'); return; }
     loadModal.classList.remove('hidden');
     setTimeout(() => modalUrlInput.focus(), 100);
 });
@@ -445,7 +531,8 @@ emptyUrlInput.addEventListener('keydown', (e) => {
 
 fullscreenBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    const el = videoStage;
+    // Fullscreen на весь main-layout (чтобы чат был доступен)
+    const el = mainLayout;
     if (!document.fullscreenElement) {
         if (el.requestFullscreen) el.requestFullscreen();
         else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
@@ -466,6 +553,7 @@ socket.on('load video', async (data) => {
 
 socket.on('sync', ({ action, time }) => {
     if (!player) return;
+    if (isHost) return; // хост сам управляет
     suppressEvents = true;
 
     try {
@@ -486,15 +574,45 @@ socket.on('sync', ({ action, time }) => {
     }, 500);
 });
 
-socket.on('room state', ({ currentVideo, history, isHost: h, users }) => {
+socket.on('room state', async ({ currentVideo, history, isHost: h, users }) => {
     isHost = h;
     roleLabel.textContent = isHost ? 'Хост' : 'Гость';
-    if (!isHost) copyLinkBtn.style.display = 'none';
+
+    if (!isHost) {
+        document.body.classList.add('guest-mode');
+        copyLinkBtn.style.display = 'none';
+    } else {
+        document.body.classList.remove('guest-mode');
+    }
 
     if (currentVideo) {
-        loadVideo(currentVideo.url, { broadcast: false, title: currentVideo.title });
+        await loadVideo(currentVideo.url, { broadcast: false, title: currentVideo.title });
+
+        // Ждём пока плеер готов, выставляем время
+        const tryRestore = (attempt = 0) => {
+            if (playerContainer.dataset.ready === '1' && player) {
+                try {
+                    doSeek(currentVideo.time || 0);
+                    if (currentVideo.isPlaying) {
+                        setTimeout(() => doPlay(), 300);
+                    } else {
+                        doPause();
+                    }
+                } catch (e) {}
+                if (isHost) startHostSync();
+            } else if (attempt < 20) {
+                setTimeout(() => tryRestore(attempt + 1), 300);
+            } else {
+                // не получилось, но не страшно
+                if (isHost) startHostSync();
+            }
+        };
+        tryRestore();
         addSystemMessage(`▶ Сейчас: ${currentVideo.title}`);
+    } else {
+        if (isHost) startHostSync();
     }
+
     renderHistory(history);
     if (users) renderUsers(users);
 });
@@ -502,7 +620,11 @@ socket.on('room state', ({ currentVideo, history, isHost: h, users }) => {
 socket.on('history update', (items) => renderHistory(items));
 socket.on('user joined', ({ nickname: n }) => addSystemMessage(`${n} присоединился`));
 socket.on('users update', (users) => renderUsers(users));
-socket.on('host changed', ({ nickname: n }) => addSystemMessage(`${n} теперь хост`));
+socket.on('host changed', ({ nickname: n }) => {
+    addSystemMessage(`${n} теперь хост`);
+    // Перезагрузим состояние — вдруг мы теперь хост
+    location.reload();
+});
 
 // ============================================================
 //  УЧАСТНИКИ
@@ -528,7 +650,7 @@ function renderUsers(users) {
 }
 
 // ============================================================
-//  ЧАТ
+//  ЧАТ + БЕЙДЖ + ЗВУК
 // ============================================================
 function escapeHtml(str) {
     if (!str) return '';
@@ -553,6 +675,15 @@ function addSystemMessage(text) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
+function updateChatBadge() {
+    if (unreadCount > 0) {
+        chatBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+        chatBadge.style.display = 'flex';
+    } else {
+        chatBadge.style.display = 'none';
+    }
+}
+
 chatSend.addEventListener('click', () => {
     const msg = chatInput.value.trim();
     if (!msg) return;
@@ -565,7 +696,15 @@ chatInput.addEventListener('keydown', (e) => {
 });
 
 socket.on('chat', ({ message, sender, senderId }) => {
-    addMessage({ message, sender, own: senderId === socket.id });
+    const own = senderId === socket.id;
+    addMessage({ message, sender, own });
+
+    // Если сообщение не от нас и чат закрыт → счётчик + звук
+    if (!own && !app.classList.contains('chat-open')) {
+        unreadCount++;
+        updateChatBadge();
+        playNotificationSound();
+    }
 });
 
 socket.on('system', (text) => addSystemMessage(text));
@@ -590,6 +729,7 @@ function renderHistory(items) {
             <div class="meta">${item.type === 'youtube' ? '▶ YouTube' : '🎬 Видео'} • ${date}</div>
         `;
         div.addEventListener('click', () => {
+            if (!isHost) { showToast('Только хост может переключать'); return; }
             loadVideo(item.url, { title: item.title });
             closeAllPanels();
         });
@@ -598,28 +738,34 @@ function renderHistory(items) {
 }
 
 // ============================================================
-//  ПАНЕЛИ
+//  ПАНЕЛИ + ЧАТ
 // ============================================================
-function closeAllPanels() {
-    app.classList.remove('chat-open');
-    historyPanel.classList.remove('visible');
-    usersPanel.classList.remove('visible');
-    chatToggle.classList.remove('active');
-    historyToggle.classList.remove('active');
-    usersBtn.classList.remove('active');
-}
-
-chatToggle.addEventListener('click', (e) => {
-    e.stopPropagation();
+function toggleChat() {
     const wasOpen = app.classList.contains('chat-open');
     closeAllPanels();
     if (!wasOpen) {
         app.classList.add('chat-open');
-        chatToggle.classList.add('active');
+        chatFloat.classList.add('active');
         setTimeout(() => chatInput.focus(), 400);
+        // Сброс непрочитанных
+        unreadCount = 0;
+        updateChatBadge();
+    } else {
+        chatFloat.classList.remove('active');
     }
     showControls();
-});
+}
+
+function closeAllPanels() {
+    app.classList.remove('chat-open');
+    historyPanel.classList.remove('visible');
+    usersPanel.classList.remove('visible');
+    chatFloat.classList.remove('active');
+    historyToggle.classList.remove('active');
+    usersBtn.classList.remove('active');
+}
+
+chatFloat.addEventListener('click', (e) => { e.stopPropagation(); toggleChat(); });
 
 historyToggle.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -643,7 +789,10 @@ usersBtn.addEventListener('click', (e) => {
     showControls();
 });
 
-document.getElementById('chatClose').addEventListener('click', closeAllPanels);
+document.getElementById('chatClose').addEventListener('click', () => {
+    closeAllPanels();
+});
+
 document.getElementById('historyClose').addEventListener('click', closeAllPanels);
 document.getElementById('usersClose').addEventListener('click', closeAllPanels);
 
@@ -653,7 +802,6 @@ document.getElementById('usersClose').addEventListener('click', closeAllPanels);
 function showControls() {
     controlsOverlay.classList.add('visible');
     topBar.classList.add('visible');
-    if (floatingBtn) floatingBtn.classList.add('hidden');
     resetAutoHide();
 }
 
@@ -666,7 +814,6 @@ function hideControls() {
 
     controlsOverlay.classList.remove('visible');
     topBar.classList.remove('visible');
-    if (floatingBtn) floatingBtn.classList.remove('hidden');
     clearTimeout(autoHideTimer);
 }
 
@@ -676,59 +823,37 @@ function resetAutoHide() {
 }
 
 function toggleControls() {
-    if (controlsOverlay.classList.contains('visible')) {
-        hideControls();
-    } else {
-        showControls();
-    }
+    if (controlsOverlay.classList.contains('visible')) hideControls();
+    else showControls();
 }
 
-// Десктоп: движение мыши
 let lastMoveTime = 0;
 document.addEventListener('mousemove', () => {
-    // На мобиле mousemove может эмулироваться после touch — игнорируем
     if (matchMedia('(max-width: 900px)').matches) return;
-
     const now = Date.now();
     if (now - lastMoveTime < 80) return;
     lastMoveTime = now;
-
     if (!controlsOverlay.classList.contains('visible')) showControls();
     else resetAutoHide();
 });
 
-// Кнопка ≡ — только мобила
-if (floatingBtn) {
-    floatingBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        toggleControls();
-    });
-}
-
-// Мобила: тап по видео для НЕ-YouTube (mp4) → toggleControls
 videoStage.addEventListener('touchstart', (e) => {
     if (e.target.closest('.controls-overlay')) return;
     if (e.target.closest('.top-bar')) return;
-    if (e.target.closest('.floating-btn')) return;
+    if (e.target.closest('.chat-float')) return;
     if (e.target.closest('.empty-state')) return;
-
-    // Для YouTube iframe тап не доходит до нас — там только floatingBtn
     if (playerType === 'youtube') return;
-
     toggleControls();
 }, { passive: true });
 
-// Продление при движении над оверлеем
 controlsOverlay.addEventListener('mousemove', resetAutoHide);
 controlsOverlay.addEventListener('touchstart', resetAutoHide, { passive: true });
 topBar.addEventListener('mousemove', resetAutoHide);
 
-// Двойной клик по видео — фуллскрин
 videoStage.addEventListener('dblclick', (e) => {
     if (e.target.closest('.controls-overlay')) return;
     if (e.target.closest('.top-bar')) return;
-    if (e.target.closest('.floating-btn')) return;
+    if (e.target.closest('.chat-float')) return;
     fullscreenBtn.click();
 });
 
@@ -809,6 +934,6 @@ document.addEventListener('keydown', (e) => {
     else if (e.key === 'ArrowDown') { e.preventDefault(); setVolume(currentVolume - 0.05); }
     else if (e.key === 'f' || e.key === 'F') { fullscreenBtn.click(); }
     else if (e.key === 'm' || e.key === 'M') { volumeBtn.click(); }
-    else if (e.key === 'c' || e.key === 'C') { chatToggle.click(); }
+    else if (e.key === 'c' || e.key === 'C') { toggleChat(); }
     else if (e.key === 'q' || e.key === 'Q') { cycleQuality(); }
 });

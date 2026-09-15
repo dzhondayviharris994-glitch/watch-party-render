@@ -61,14 +61,17 @@
                     </div>
 
                     <div class="controls-group">
-                        <button id="chatToggle" class="ctrl-btn" title="Чат">💬</button>
                         <button id="historyToggle" class="ctrl-btn" title="История">📜</button>
                         <button id="fullscreenBtn" class="ctrl-btn" title="На весь экран">⛶</button>
                     </div>
                 </div>
             </div>
 
-            <button class="floating-btn" id="floatingBtn" title="Управление">⋯</button>
+            <!-- Плавающая кнопка чата -->
+            <button class="chat-float" id="chatFloat" title="Чат">
+                <span class="chat-float-icon">💬</span>
+                <span class="chat-badge" id="chatBadge" style="display:none;">0</span>
+            </button>
         </div>
 
         <aside class="chat-panel" id="chatPanel">
