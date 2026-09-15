@@ -78,6 +78,13 @@ const chatBadge = document.getElementById('chatBadge');
 const floatingBtn = document.getElementById('floatingBtn');
 
 // ============================================================
+//  ХЕЛПЕР: МОБИЛА?
+// ============================================================
+function isMobile() {
+    return matchMedia('(max-width: 900px)').matches;
+}
+
+// ============================================================
 //  ЗВУК
 // ============================================================
 function ensureAudio() {
@@ -559,7 +566,6 @@ socket.on('sync', ({ action, time }) => {
     setTimeout(() => { suppressEvents = false; updatePlayButton(); }, 500);
 });
 
-// Периодическая синхронизация от хоста (каждые 2 сек)
 socket.on('sync state', ({ time, isPlaying: hostPlaying }) => {
     if (isHost) return;
     if (!player) return;
@@ -568,7 +574,6 @@ socket.on('sync state', ({ time, isPlaying: hostPlaying }) => {
     const diff = Math.abs(cur - time);
     const guestPlaying = isPlaying();
 
-    // Если сильно разошлись (больше 2 сек) или статус воспроизведения разный
     const needSeek = diff > 2;
     const needPlayPause = guestPlaying !== hostPlaying;
 
@@ -746,7 +751,10 @@ function toggleChat() {
     if (!wasOpen) {
         app.classList.add('chat-open');
         chatFloat.classList.add('active');
-        setTimeout(() => chatInput.focus(), 400);
+        // Фокус на поле ввода — только на десктопе (на телефоне не хотим клаву)
+        if (!isMobile()) {
+            setTimeout(() => chatInput.focus(), 400);
+        }
         unreadCount = 0;
         updateChatBadge();
     } else {
@@ -828,7 +836,7 @@ function toggleControls() {
 // Десктоп: движение мыши
 let lastMoveTime = 0;
 document.addEventListener('mousemove', () => {
-    if (matchMedia('(max-width: 900px)').matches) return;
+    if (isMobile()) return;
     const now = Date.now();
     if (now - lastMoveTime < 80) return;
     lastMoveTime = now;
@@ -843,7 +851,7 @@ floatingBtn.addEventListener('click', (e) => {
     toggleControls();
 });
 
-// Тап по видео (мобила): показывает/скрывает оверлей (не мешает гостю — iframe сам ловит)
+// Тап по видео (мобила): показывает/скрывает оверлей
 videoStage.addEventListener('touchstart', (e) => {
     if (e.target.closest('.controls-overlay')) return;
     if (e.target.closest('.top-bar')) return;
