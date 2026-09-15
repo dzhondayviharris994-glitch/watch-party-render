@@ -59,12 +59,6 @@ html, body {
     background: #000;
 }
 
-/* ГОСТЬ: блокируем любые клики в видео (YouTube/iframe/video) */
-body.guest-mode .player-container iframe,
-body.guest-mode .player-container video {
-    pointer-events: none !important;
-}
-
 .empty-state {
     position: absolute;
     inset: 0;
@@ -147,20 +141,13 @@ body.guest-mode .player-container video {
     line-height: 1;
 }
 
-.chat-float:hover {
-    background: rgba(99, 102, 241, 0.85);
-    transform: scale(1.06);
-}
-
-.chat-float.active {
-    background: var(--accent);
-    border-color: var(--accent);
-}
-
+.chat-float:hover { background: rgba(99, 102, 241, 0.85); transform: scale(1.06); }
+.chat-float.active { background: var(--accent); border-color: var(--accent); }
 .chat-float-icon { display: inline-block; }
 
-/* Плавающая кнопка управления (⋯) */
+/* Плавающая кнопка управления (⋯) — только мобила */
 .floating-btn {
+    display: none;
     position: absolute;
     bottom: 24px;
     right: 20px;
@@ -176,7 +163,6 @@ body.guest-mode .player-container video {
     font-weight: 700;
     cursor: pointer;
     z-index: 35;
-    display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
@@ -185,15 +171,8 @@ body.guest-mode .player-container video {
     line-height: 1;
 }
 
-.floating-btn:hover {
-    background: rgba(99, 102, 241, 0.85);
-    transform: scale(1.06);
-}
-
-.floating-btn.active {
-    background: var(--accent);
-    border-color: var(--accent);
-}
+.floating-btn:hover { background: rgba(99, 102, 241, 0.85); transform: scale(1.06); }
+.floating-btn.active { background: var(--accent); border-color: var(--accent); }
 
 .chat-badge {
     position: absolute;
@@ -729,7 +708,7 @@ body.guest-mode .player-container video {
 
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* ГОСТЕВОЙ РЕЖИМ: кнопки управления неактивны */
+/* ГОСТЕВОЙ РЕЖИМ: неактивные кнопки оверлея */
 body.guest-mode #playPauseBtn,
 body.guest-mode #rewindBtn,
 body.guest-mode #forwardBtn,
@@ -794,24 +773,28 @@ body.guest-mode #seekBar {
     .btn-primary-lg { width: 100%; }
     .modal-content { padding: 24px; }
 
-    .chat-float {
-        width: 50px; height: 50px;
-        font-size: 1.35rem;
-        bottom: 86px; right: 16px;
-    }
+    /* Мобильные кнопки: ⋯ внизу (место чата), чат выше */
     .floating-btn {
+        display: flex;
         width: 50px; height: 50px;
         font-size: 1.5rem;
         bottom: 24px; right: 16px;
         padding: 0 0 8px 0;
+    }
+
+    .chat-float {
+        width: 50px; height: 50px;
+        font-size: 1.35rem;
+        bottom: 86px; right: 16px;
     }
 }
 
 @media (max-width: 480px) {
     .ctrl-btn { width: 40px; height: 40px; font-size: 0.95rem; }
     .controls-overlay { padding: 12px 10px max(14px, env(safe-area-inset-bottom)); }
-    .chat-float { width: 46px; height: 46px; font-size: 1.25rem; bottom: 80px; right: 14px; }
+
     .floating-btn { width: 46px; height: 46px; font-size: 1.35rem; bottom: 22px; right: 14px; padding: 0 0 6px 0; }
+    .chat-float { width: 46px; height: 46px; font-size: 1.25rem; bottom: 80px; right: 14px; }
 }
 
 @media (max-width: 900px) and (orientation: landscape) {
@@ -829,8 +812,9 @@ body.guest-mode #seekBar {
     .controls-overlay { padding: 8px 16px max(10px, env(safe-area-inset-bottom)); }
     .progress-row { margin-bottom: 6px; }
     .ctrl-btn { width: 38px; height: 38px; }
-    .chat-float { bottom: 70px; right: 12px; width: 44px; height: 44px; font-size: 1.2rem; }
+
     .floating-btn { bottom: 18px; right: 12px; width: 44px; height: 44px; font-size: 1.3rem; padding: 0 0 6px 0; }
+    .chat-float { bottom: 70px; right: 12px; width: 44px; height: 44px; font-size: 1.2rem; }
 }
 
 ::-webkit-scrollbar { width: 6px; }

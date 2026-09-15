@@ -20,19 +20,12 @@ try {
 } catch (e) { roomsData = {}; }
 
 function saveData() {
-    try {
-        fs.writeFileSync(HISTORY_FILE, JSON.stringify(roomsData, null, 2), 'utf-8');
-    } catch (e) {}
+    try { fs.writeFileSync(HISTORY_FILE, JSON.stringify(roomsData, null, 2), 'utf-8'); } catch (e) {}
 }
 
 function getRoom(roomId) {
     if (!roomsData[roomId]) {
-        roomsData[roomId] = {
-            currentVideo: null,
-            history: [],
-            hostId: null,
-            users: {}
-        };
+        roomsData[roomId] = { currentVideo: null, history: [], hostId: null, users: {} };
     }
     if (!roomsData[roomId].users) roomsData[roomId].users = {};
     return roomsData[roomId];
@@ -49,39 +42,25 @@ io.on('connection', (socket) => {
         const room = getRoom(roomId);
 
         let isHost = false;
-        if (!room.hostId) {
-            room.hostId = socket.id;
-            isHost = true;
-        } else if (room.hostId === socket.id) {
-            isHost = true;
-        }
+        if (!room.hostId) { room.hostId = socket.id; isHost = true; }
+        else if (room.hostId === socket.id) isHost = true;
 
-        room.users[socket.id] = {
-            nickname: socket.data.nickname,
-            isHost: isHost,
-            joinedAt: Date.now()
-        };
-
+        room.users[socket.id] = { nickname: socket.data.nickname, isHost, joinedAt: Date.now() };
         saveData();
 
         socket.emit('room state', {
             currentVideo: room.currentVideo,
             history: room.history,
-            isHost: isHost,
+            isHost,
             users: Object.values(room.users)
         });
 
-        socket.to(roomId).emit('user joined', {
-            id: socket.id,
-            nickname: socket.data.nickname,
-            isHost: isHost
-        });
-
+        socket.to(roomId).emit('user joined', { id: socket.id, nickname: socket.data.nickname, isHost });
         io.to(roomId).emit('users update', Object.values(room.users));
         console.log(`${socket.data.nickname} → ${roomId} ${isHost ? '(HOST)' : '(guest)'}`);
     });
 
-    // Хост шлёт текущее время и статус воспроизведения
+    // Хост шлёт своё время/статус → broadcast ВСЕМ гостям
     socket.on('sync state', ({ time, isPlaying }) => {
         const roomId = socket.data.roomId;
         if (!roomId) return;
@@ -91,14 +70,16 @@ io.on('connection', (socket) => {
 
         room.currentVideo.time = time;
         room.currentVideo.isPlaying = isPlaying;
+
+        // Отправляем гостям
+        socket.to(roomId).emit('sync state', { time, isPlaying });
     });
 
-    // Хост шлёт action (play/pause/seek)
     socket.on('sync', ({ action, time }) => {
         const roomId = socket.data.roomId;
         if (!roomId) return;
         const room = getRoom(roomId);
-        if (room.hostId !== socket.id) return; // только хост
+        if (room.hostId !== socket.id) return;
 
         socket.to(roomId).emit('sync', { action, time, from: socket.data.nickname });
 
@@ -113,20 +94,16 @@ io.on('connection', (socket) => {
         const roomId = socket.data.roomId;
         if (!roomId) return;
         const room = getRoom(roomId);
-        if (room.hostId !== socket.id) return; // только хост
+        if (room.hostId !== socket.id) return;
 
         const videoData = {
-            url,
-            type,
-            title: title || url,
+            url, type, title: title || url,
             addedBy: socket.data.nickname,
             timestamp: Date.now(),
-            time: 0,
-            isPlaying: true
+            time: 0, isPlaying: true
         };
 
         room.currentVideo = videoData;
-
         if (room.history.length === 0 || room.history[0].url !== url) {
             room.history.unshift(videoData);
             room.history = room.history.slice(0, 50);
@@ -141,10 +118,8 @@ io.on('connection', (socket) => {
         const roomId = socket.data.roomId;
         if (!roomId) return;
         io.to(roomId).emit('chat', {
-            message,
-            sender: socket.data.nickname,
-            senderId: socket.id,
-            timestamp: Date.now()
+            message, sender: socket.data.nickname,
+            senderId: socket.id, timestamp: Date.now()
         });
     });
 

@@ -559,6 +559,30 @@ socket.on('sync', ({ action, time }) => {
     setTimeout(() => { suppressEvents = false; updatePlayButton(); }, 500);
 });
 
+// Периодическая синхронизация от хоста (каждые 2 сек)
+socket.on('sync state', ({ time, isPlaying: hostPlaying }) => {
+    if (isHost) return;
+    if (!player) return;
+
+    const cur = getCurrentTime();
+    const diff = Math.abs(cur - time);
+    const guestPlaying = isPlaying();
+
+    // Если сильно разошлись (больше 2 сек) или статус воспроизведения разный
+    const needSeek = diff > 2;
+    const needPlayPause = guestPlaying !== hostPlaying;
+
+    if (needSeek || needPlayPause) {
+        suppressEvents = true;
+        try {
+            if (needSeek) doSeek(time);
+            if (hostPlaying && !guestPlaying) setTimeout(() => doPlay(), 100);
+            if (!hostPlaying && guestPlaying) doPause();
+        } catch (e) {}
+        setTimeout(() => { suppressEvents = false; updatePlayButton(); }, 500);
+    }
+});
+
 socket.on('room state', async ({ currentVideo, history, isHost: h, users }) => {
     isHost = h;
     roleLabel.textContent = isHost ? 'Хост' : 'Гость';
@@ -812,22 +836,21 @@ document.addEventListener('mousemove', () => {
     else resetAutoHide();
 });
 
-// Кнопка ⋯
+// Кнопка ⋯ (только мобила)
 floatingBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     e.preventDefault();
     toggleControls();
 });
 
-// Тап по видео: показывает/скрывает оверлей
+// Тап по видео (мобила): показывает/скрывает оверлей (не мешает гостю — iframe сам ловит)
 videoStage.addEventListener('touchstart', (e) => {
     if (e.target.closest('.controls-overlay')) return;
     if (e.target.closest('.top-bar')) return;
     if (e.target.closest('.chat-float')) return;
     if (e.target.closest('.floating-btn')) return;
     if (e.target.closest('.empty-state')) return;
-    // У хоста с YouTube iframe сам обрабатывает тапы — не мешаем
-    if (isHost && playerType === 'youtube') return;
+    if (playerType === 'youtube') return;
     toggleControls();
 }, { passive: true });
 
