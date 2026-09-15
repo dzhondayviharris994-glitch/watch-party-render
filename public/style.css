@@ -708,7 +708,7 @@ html, body {
 
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* ГОСТЕВОЙ РЕЖИМ: неактивные кнопки оверлея */
+/* ГОСТЕВОЙ РЕЖИМ */
 body.guest-mode #playPauseBtn,
 body.guest-mode #rewindBtn,
 body.guest-mode #forwardBtn,
@@ -720,8 +720,8 @@ body.guest-mode #seekBar {
     cursor: not-allowed;
 }
 
-/* МОБИЛЬНАЯ АДАПТАЦИЯ */
-@media (max-width: 900px) {
+/* МОБИЛЬНАЯ АДАПТАЦИЯ — ПОРТРЕТ */
+@media (max-width: 900px) and (orientation: portrait) {
     .main-layout { flex-direction: column; }
     .video-stage { flex: 1 1 auto; min-height: 0; }
     .chat-panel {
@@ -773,7 +773,7 @@ body.guest-mode #seekBar {
     .btn-primary-lg { width: 100%; }
     .modal-content { padding: 24px; }
 
-    /* Мобильные кнопки: ⋯ внизу (место чата), чат выше */
+    /* ⋯ внизу справа, 💬 над ним */
     .floating-btn {
         display: flex;
         width: 50px; height: 50px;
@@ -781,7 +781,6 @@ body.guest-mode #seekBar {
         bottom: 24px; right: 16px;
         padding: 0 0 8px 0;
     }
-
     .chat-float {
         width: 50px; height: 50px;
         font-size: 1.35rem;
@@ -789,14 +788,7 @@ body.guest-mode #seekBar {
     }
 }
 
-@media (max-width: 480px) {
-    .ctrl-btn { width: 40px; height: 40px; font-size: 0.95rem; }
-    .controls-overlay { padding: 12px 10px max(14px, env(safe-area-inset-bottom)); }
-
-    .floating-btn { width: 46px; height: 46px; font-size: 1.35rem; bottom: 22px; right: 14px; padding: 0 0 6px 0; }
-    .chat-float { width: 46px; height: 46px; font-size: 1.25rem; bottom: 80px; right: 14px; }
-}
-
+/* МОБИЛЬНАЯ АДАПТАЦИЯ — ЛАНДШАФТ (в т.ч. fullscreen) */
 @media (max-width: 900px) and (orientation: landscape) {
     .main-layout { flex-direction: row; }
     .video-stage { flex: 1 1 auto; min-height: 0; max-height: 100%; }
@@ -809,12 +801,37 @@ body.guest-mode #seekBar {
         transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .app.chat-open .chat-panel { width: 320px !important; height: 100% !important; }
+
     .controls-overlay { padding: 8px 16px max(10px, env(safe-area-inset-bottom)); }
     .progress-row { margin-bottom: 6px; }
     .ctrl-btn { width: 38px; height: 38px; }
+    .ctrl-main { font-size: 1rem; }
 
-    .floating-btn { bottom: 18px; right: 12px; width: 44px; height: 44px; font-size: 1.3rem; padding: 0 0 6px 0; }
-    .chat-float { bottom: 70px; right: 12px; width: 44px; height: 44px; font-size: 1.2rem; }
+    /* ⋯ и 💬 на правой стороне, ВЫСОКО, чтобы не накладывались на YouTube */
+    .floating-btn {
+        display: flex;
+        bottom: 130px;
+        right: 12px;
+        width: 44px;
+        height: 44px;
+        font-size: 1.3rem;
+        padding: 0 0 6px 0;
+    }
+    .chat-float {
+        bottom: 188px;
+        right: 12px;
+        width: 44px;
+        height: 44px;
+        font-size: 1.2rem;
+    }
+}
+
+@media (max-width: 480px) and (orientation: portrait) {
+    .ctrl-btn { width: 40px; height: 40px; font-size: 0.95rem; }
+    .controls-overlay { padding: 12px 10px max(14px, env(safe-area-inset-bottom)); }
+
+    .floating-btn { width: 46px; height: 46px; font-size: 1.35rem; bottom: 22px; right: 14px; padding: 0 0 6px 0; }
+    .chat-float { width: 46px; height: 46px; font-size: 1.25rem; bottom: 80px; right: 14px; }
 }
 
 ::-webkit-scrollbar { width: 6px; }
