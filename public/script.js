@@ -75,19 +75,16 @@ const nickBtn = document.getElementById('nickBtn');
 const toast = document.getElementById('toast');
 const chatFloat = document.getElementById('chatFloat');
 const chatBadge = document.getElementById('chatBadge');
+const floatingBtn = document.getElementById('floatingBtn');
 
 // ============================================================
-//  ЗВУК УВЕДОМЛЕНИЯ (WebAudio)
+//  ЗВУК
 // ============================================================
 function ensureAudio() {
     if (!audioCtx) {
-        try {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        } catch (e) {}
+        try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
     }
-    if (audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume();
-    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
 }
 
 document.addEventListener('click', ensureAudio);
@@ -140,7 +137,7 @@ window.onYouTubeIframeAPIReady = function() {
 };
 
 // ============================================================
-//  ПАРСИНГ ССЫЛОК
+//  ПАРСИНГ
 // ============================================================
 function parseUrl(url) {
     url = url.trim();
@@ -191,7 +188,6 @@ function createYouTubePlayer(videoId) {
                     if (player.setPlaybackQuality) player.setPlaybackQuality('hd1080');
                 } catch (e) {}
                 qualityBtn.textContent = 'HD';
-                // Сообщаем что плеер готов
                 playerContainer.dataset.ready = '1';
             },
             onStateChange: (e) => {
@@ -277,7 +273,7 @@ async function loadVideo(url, { broadcast = true, title = '' } = {}) {
 }
 
 // ============================================================
-//  УПРАВЛЕНИЕ (только хост)
+//  УПРАВЛЕНИЕ
 // ============================================================
 function togglePlay() {
     if (!player) return;
@@ -301,7 +297,6 @@ function seekRelative(seconds) {
     let newTime = cur + seconds;
     if (newTime < 0) newTime = 0;
     if (newTime > dur) newTime = dur;
-
     if (playerType === 'youtube') {
         player.seekTo(newTime, true);
         socket.emit('sync', { action: 'seek', time: newTime });
@@ -313,11 +308,8 @@ function seekRelative(seconds) {
 
 function doSeek(newTime) {
     if (!player) return;
-    if (playerType === 'youtube') {
-        player.seekTo(newTime, true);
-    } else {
-        player.currentTime = newTime;
-    }
+    if (playerType === 'youtube') player.seekTo(newTime, true);
+    else player.currentTime = newTime;
 }
 
 function doPlay() {
@@ -409,17 +401,14 @@ function startSeekUpdater() {
 }
 
 // ============================================================
-//  ХОСТ-СИНХРОНИЗАЦИЯ (каждые 2 сек)
+//  ХОСТ-СИНХРОНИЗАЦИЯ
 // ============================================================
 function startHostSync() {
     if (!isHost) return;
     if (hostSyncInterval) clearInterval(hostSyncInterval);
     hostSyncInterval = setInterval(() => {
         if (!player) return;
-        socket.emit('sync state', {
-            time: getCurrentTime(),
-            isPlaying: isPlaying()
-        });
+        socket.emit('sync state', { time: getCurrentTime(), isPlaying: isPlaying() });
     }, 2000);
 }
 
@@ -451,7 +440,7 @@ function cycleQuality() {
 }
 
 // ============================================================
-//  UI ОБРАБОТЧИКИ
+//  UI
 // ============================================================
 playPauseBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePlay(); });
 rewindBtn.addEventListener('click', (e) => { e.stopPropagation(); seekRelative(-10); });
@@ -481,7 +470,7 @@ seekBar.addEventListener('input', (e) => {
 });
 seekBar.addEventListener('change', (e) => {
     if (!player) return;
-    if (!isHost) { showToast('Только хост управляет'); return; }
+    if (!isHost) { showToast('Только хост'); return; }
     const dur = getDuration();
     const newTime = (e.target.value / 100) * dur;
     if (playerType === 'youtube') {
@@ -496,7 +485,7 @@ seekBar.addEventListener('change', (e) => {
 
 loadNewBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (!isHost) { showToast('Только хост может грузить видео'); return; }
+    if (!isHost) { showToast('Только хост'); return; }
     loadModal.classList.remove('hidden');
     setTimeout(() => modalUrlInput.focus(), 100);
 });
@@ -531,7 +520,6 @@ emptyUrlInput.addEventListener('keydown', (e) => {
 
 fullscreenBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    // Fullscreen на весь main-layout (чтобы чат был доступен)
     const el = mainLayout;
     if (!document.fullscreenElement) {
         if (el.requestFullscreen) el.requestFullscreen();
@@ -553,7 +541,7 @@ socket.on('load video', async (data) => {
 
 socket.on('sync', ({ action, time }) => {
     if (!player) return;
-    if (isHost) return; // хост сам управляет
+    if (isHost) return;
     suppressEvents = true;
 
     try {
@@ -568,10 +556,7 @@ socket.on('sync', ({ action, time }) => {
         }
     } catch (e) {}
 
-    setTimeout(() => {
-        suppressEvents = false;
-        updatePlayButton();
-    }, 500);
+    setTimeout(() => { suppressEvents = false; updatePlayButton(); }, 500);
 });
 
 socket.on('room state', async ({ currentVideo, history, isHost: h, users }) => {
@@ -587,23 +572,17 @@ socket.on('room state', async ({ currentVideo, history, isHost: h, users }) => {
 
     if (currentVideo) {
         await loadVideo(currentVideo.url, { broadcast: false, title: currentVideo.title });
-
-        // Ждём пока плеер готов, выставляем время
         const tryRestore = (attempt = 0) => {
             if (playerContainer.dataset.ready === '1' && player) {
                 try {
                     doSeek(currentVideo.time || 0);
-                    if (currentVideo.isPlaying) {
-                        setTimeout(() => doPlay(), 300);
-                    } else {
-                        doPause();
-                    }
+                    if (currentVideo.isPlaying) setTimeout(() => doPlay(), 300);
+                    else doPause();
                 } catch (e) {}
                 if (isHost) startHostSync();
             } else if (attempt < 20) {
                 setTimeout(() => tryRestore(attempt + 1), 300);
             } else {
-                // не получилось, но не страшно
                 if (isHost) startHostSync();
             }
         };
@@ -622,7 +601,6 @@ socket.on('user joined', ({ nickname: n }) => addSystemMessage(`${n} присо�
 socket.on('users update', (users) => renderUsers(users));
 socket.on('host changed', ({ nickname: n }) => {
     addSystemMessage(`${n} теперь хост`);
-    // Перезагрузим состояние — вдруг мы теперь хост
     location.reload();
 });
 
@@ -650,7 +628,7 @@ function renderUsers(users) {
 }
 
 // ============================================================
-//  ЧАТ + БЕЙДЖ + ЗВУК
+//  ЧАТ
 // ============================================================
 function escapeHtml(str) {
     if (!str) return '';
@@ -698,8 +676,6 @@ chatInput.addEventListener('keydown', (e) => {
 socket.on('chat', ({ message, sender, senderId }) => {
     const own = senderId === socket.id;
     addMessage({ message, sender, own });
-
-    // Если сообщение не от нас и чат закрыт → счётчик + звук
     if (!own && !app.classList.contains('chat-open')) {
         unreadCount++;
         updateChatBadge();
@@ -729,7 +705,7 @@ function renderHistory(items) {
             <div class="meta">${item.type === 'youtube' ? '▶ YouTube' : '🎬 Видео'} • ${date}</div>
         `;
         div.addEventListener('click', () => {
-            if (!isHost) { showToast('Только хост может переключать'); return; }
+            if (!isHost) { showToast('Только хост'); return; }
             loadVideo(item.url, { title: item.title });
             closeAllPanels();
         });
@@ -738,7 +714,7 @@ function renderHistory(items) {
 }
 
 // ============================================================
-//  ПАНЕЛИ + ЧАТ
+//  ПАНЕЛИ
 // ============================================================
 function toggleChat() {
     const wasOpen = app.classList.contains('chat-open');
@@ -747,7 +723,6 @@ function toggleChat() {
         app.classList.add('chat-open');
         chatFloat.classList.add('active');
         setTimeout(() => chatInput.focus(), 400);
-        // Сброс непрочитанных
         unreadCount = 0;
         updateChatBadge();
     } else {
@@ -789,10 +764,7 @@ usersBtn.addEventListener('click', (e) => {
     showControls();
 });
 
-document.getElementById('chatClose').addEventListener('click', () => {
-    closeAllPanels();
-});
-
+document.getElementById('chatClose').addEventListener('click', closeAllPanels);
 document.getElementById('historyClose').addEventListener('click', closeAllPanels);
 document.getElementById('usersClose').addEventListener('click', closeAllPanels);
 
@@ -802,6 +774,7 @@ document.getElementById('usersClose').addEventListener('click', closeAllPanels);
 function showControls() {
     controlsOverlay.classList.add('visible');
     topBar.classList.add('visible');
+    floatingBtn.classList.add('active');
     resetAutoHide();
 }
 
@@ -814,6 +787,7 @@ function hideControls() {
 
     controlsOverlay.classList.remove('visible');
     topBar.classList.remove('visible');
+    floatingBtn.classList.remove('active');
     clearTimeout(autoHideTimer);
 }
 
@@ -827,6 +801,7 @@ function toggleControls() {
     else showControls();
 }
 
+// Десктоп: движение мыши
 let lastMoveTime = 0;
 document.addEventListener('mousemove', () => {
     if (matchMedia('(max-width: 900px)').matches) return;
@@ -837,12 +812,22 @@ document.addEventListener('mousemove', () => {
     else resetAutoHide();
 });
 
+// Кнопка ⋯
+floatingBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    toggleControls();
+});
+
+// Тап по видео: показывает/скрывает оверлей
 videoStage.addEventListener('touchstart', (e) => {
     if (e.target.closest('.controls-overlay')) return;
     if (e.target.closest('.top-bar')) return;
     if (e.target.closest('.chat-float')) return;
+    if (e.target.closest('.floating-btn')) return;
     if (e.target.closest('.empty-state')) return;
-    if (playerType === 'youtube') return;
+    // У хоста с YouTube iframe сам обрабатывает тапы — не мешаем
+    if (isHost && playerType === 'youtube') return;
     toggleControls();
 }, { passive: true });
 
@@ -850,10 +835,13 @@ controlsOverlay.addEventListener('mousemove', resetAutoHide);
 controlsOverlay.addEventListener('touchstart', resetAutoHide, { passive: true });
 topBar.addEventListener('mousemove', resetAutoHide);
 
+// Двойной клик → fullscreen: только для хоста
 videoStage.addEventListener('dblclick', (e) => {
+    if (!isHost) return;
     if (e.target.closest('.controls-overlay')) return;
     if (e.target.closest('.top-bar')) return;
     if (e.target.closest('.chat-float')) return;
+    if (e.target.closest('.floating-btn')) return;
     fullscreenBtn.click();
 });
 
@@ -887,7 +875,7 @@ copyLinkBtn.addEventListener('click', () => {
 });
 
 // ============================================================
-//  СТАРТ СЕССИИ
+//  СТАРТ
 // ============================================================
 function startSession(nick) {
     nickname = nick;
@@ -908,9 +896,6 @@ nickInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') nickBtn.click();
 });
 
-// ============================================================
-//  ИНИЦИАЛИЗАЦИЯ
-// ============================================================
 loadYouTubeAPI();
 setVolume(1);
 
