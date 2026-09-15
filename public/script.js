@@ -32,7 +32,6 @@ let previousVolume = 1;
 const app = document.getElementById('app');
 const videoStage = document.getElementById('videoStage');
 const playerContainer = document.getElementById('playerContainer');
-const mobileTouchShield = document.getElementById('mobileTouchShield');
 const emptyState = document.getElementById('emptyState');
 const emptyUrlInput = document.getElementById('emptyUrlInput');
 const emptyLoadBtn = document.getElementById('emptyLoadBtn');
@@ -42,6 +41,7 @@ const copyLinkBtn = document.getElementById('copyLinkBtn');
 const usersBtn = document.getElementById('usersBtn');
 const usersCount = document.getElementById('usersCount');
 const controlsOverlay = document.getElementById('controlsOverlay');
+const floatingBtn = document.getElementById('floatingBtn');
 const playPauseBtn = document.getElementById('playPauseBtn');
 const rewindBtn = document.getElementById('rewindBtn');
 const forwardBtn = document.getElementById('forwardBtn');
@@ -230,7 +230,7 @@ async function loadVideo(url, { broadcast = true, title = '' } = {}) {
 }
 
 // ============================================================
-//  УПРАВЛЕНИЕ ПЛЕЕРОМ
+//  УПРАВЛЕНИЕ
 // ============================================================
 function togglePlay() {
     if (!player) return;
@@ -337,7 +337,6 @@ function startSeekUpdater() {
 // ============================================================
 //  КАЧЕСТВО
 // ============================================================
-let qualityIndex = 0;
 const QUALITIES = ['hd1080', 'hd720', 'large', 'medium', 'small'];
 const QUALITY_LABELS = {
     hd1080: '1080p', hd720: '720p', large: '480p', medium: '360p', small: '240p'
@@ -368,7 +367,7 @@ function cycleQuality() {
 }
 
 // ============================================================
-//  ОБРАБОТЧИКИ UI
+//  UI ОБРАБОТЧИКИ
 // ============================================================
 playPauseBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePlay(); });
 rewindBtn.addEventListener('click', (e) => { e.stopPropagation(); seekRelative(-10); });
@@ -490,7 +489,6 @@ socket.on('sync', ({ action, time }) => {
 socket.on('room state', ({ currentVideo, history, isHost: h, users }) => {
     isHost = h;
     roleLabel.textContent = isHost ? 'Хост' : 'Гость';
-
     if (!isHost) copyLinkBtn.style.display = 'none';
 
     if (currentVideo) {
@@ -655,6 +653,7 @@ document.getElementById('usersClose').addEventListener('click', closeAllPanels);
 function showControls() {
     controlsOverlay.classList.add('visible');
     topBar.classList.add('visible');
+    if (floatingBtn) floatingBtn.classList.add('hidden');
     resetAutoHide();
 }
 
@@ -667,6 +666,7 @@ function hideControls() {
 
     controlsOverlay.classList.remove('visible');
     topBar.classList.remove('visible');
+    if (floatingBtn) floatingBtn.classList.remove('hidden');
     clearTimeout(autoHideTimer);
 }
 
@@ -675,9 +675,20 @@ function resetAutoHide() {
     autoHideTimer = setTimeout(hideControls, 3000);
 }
 
-// Десктоп: движение мыши показывает оверлей
+function toggleControls() {
+    if (controlsOverlay.classList.contains('visible')) {
+        hideControls();
+    } else {
+        showControls();
+    }
+}
+
+// Десктоп: движение мыши
 let lastMoveTime = 0;
 document.addEventListener('mousemove', () => {
+    // На мобиле mousemove может эмулироваться после touch — игнорируем
+    if (matchMedia('(max-width: 900px)').matches) return;
+
     const now = Date.now();
     if (now - lastMoveTime < 80) return;
     lastMoveTime = now;
@@ -686,19 +697,27 @@ document.addEventListener('mousemove', () => {
     else resetAutoHide();
 });
 
-// Мобила: тап по тач-шилду поверх видео
-function toggleControlsFromTap(e) {
-    if (e) {
+// Кнопка ≡ — только мобила
+if (floatingBtn) {
+    floatingBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         e.preventDefault();
-    }
-    if (controlsOverlay.classList.contains('visible')) hideControls();
-    else showControls();
+        toggleControls();
+    });
 }
 
-if (mobileTouchShield) {
-    mobileTouchShield.addEventListener('click', toggleControlsFromTap);
-}
+// Мобила: тап по видео для НЕ-YouTube (mp4) → toggleControls
+videoStage.addEventListener('touchstart', (e) => {
+    if (e.target.closest('.controls-overlay')) return;
+    if (e.target.closest('.top-bar')) return;
+    if (e.target.closest('.floating-btn')) return;
+    if (e.target.closest('.empty-state')) return;
+
+    // Для YouTube iframe тап не доходит до нас — там только floatingBtn
+    if (playerType === 'youtube') return;
+
+    toggleControls();
+}, { passive: true });
 
 // Продление при движении над оверлеем
 controlsOverlay.addEventListener('mousemove', resetAutoHide);
@@ -709,6 +728,7 @@ topBar.addEventListener('mousemove', resetAutoHide);
 videoStage.addEventListener('dblclick', (e) => {
     if (e.target.closest('.controls-overlay')) return;
     if (e.target.closest('.top-bar')) return;
+    if (e.target.closest('.floating-btn')) return;
     fullscreenBtn.click();
 });
 

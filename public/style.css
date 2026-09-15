@@ -30,9 +30,6 @@ html, body {
     overflow: hidden;
 }
 
-/* ═══════════════════════════════════════════════════
-   MAIN LAYOUT: видео + чат (сбоку/снизу)
-   ═══════════════════════════════════════════════════ */
 .main-layout {
     position: absolute;
     inset: 0;
@@ -59,20 +56,6 @@ html, body {
     border: none;
     display: block;
     background: #000;
-}
-
-/* Тач-шилд (только мобильные, чтобы перехватить клики поверх YouTube iframe) */
-.mobile-touch-shield { display: none; }
-
-@media (max-width: 900px) {
-    .app.has-player .mobile-touch-shield {
-        display: block;
-        position: absolute;
-        inset: 0;
-        z-index: 10;
-        background: transparent;
-        cursor: pointer;
-    }
 }
 
 /* Пустое состояние */
@@ -133,9 +116,10 @@ html, body {
 
 .btn-primary-lg:hover { background: var(--accent-hover); }
 
-/* ═══════════════════════════════════════════════════
-   TOP BAR
-   ═══════════════════════════════════════════════════ */
+/* Плавающая кнопка — только мобила, только когда есть видео */
+.floating-btn { display: none; }
+
+/* TOP BAR */
 .top-bar {
     position: absolute;
     top: 0;
@@ -208,9 +192,7 @@ html, body {
 
 .top-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: var(--accent); }
 
-/* ═══════════════════════════════════════════════════
-   CONTROLS OVERLAY
-   ═══════════════════════════════════════════════════ */
+/* CONTROLS OVERLAY */
 .controls-overlay {
     position: absolute;
     left: 0;
@@ -373,9 +355,7 @@ html, body {
     border: none;
 }
 
-/* ═══════════════════════════════════════════════════
-   CHAT PANEL (встроен в layout)
-   ═══════════════════════════════════════════════════ */
+/* CHAT PANEL */
 .chat-panel {
     flex: 0 0 auto;
     width: 0;
@@ -391,9 +371,7 @@ html, body {
     width: 360px;
 }
 
-/* ═══════════════════════════════════════════════════
-   SIDE PANELS (история, участники) — выезжают
-   ═══════════════════════════════════════════════════ */
+/* SIDE PANELS */
 .side-panel {
     position: absolute;
     top: 0;
@@ -691,10 +669,44 @@ html, body {
     transform: translateX(-50%) translateY(0);
 }
 
-/* ═══════════════════════════════════════════════════
-   МОБИЛЬНАЯ АДАПТАЦИЯ
-   ═══════════════════════════════════════════════════ */
+/* ========= МОБИЛЬНАЯ АДАПТАЦИЯ ========= */
 @media (max-width: 900px) {
+
+    /* Плавающая кнопка ≡ — показывается на мобиле, если есть видео */
+    .app.has-player .floating-btn {
+        display: flex;
+        position: absolute;
+        bottom: 16px;
+        right: 16px;
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        color: #fff;
+        font-size: 1.7rem;
+        font-weight: 700;
+        line-height: 1;
+        z-index: 26;
+        cursor: pointer;
+        align-items: center;
+        justify-content: center;
+        padding: 0 0 8px 0;
+        transition: background 0.2s, transform 0.15s;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .app.has-player .floating-btn:active {
+        transform: scale(0.9);
+        background: rgba(99, 102, 241, 0.7);
+    }
+
+    /* Прячем кнопку, когда оверлей открыт — он уже перекрывает угол */
+    .app.has-player .floating-btn.hidden {
+        display: none;
+    }
 
     /* Портрет: чат снизу */
     .main-layout {
@@ -723,7 +735,7 @@ html, body {
 
     .side-panel { width: 100%; }
 
-    /* Уменьшаем кнопки на мобиле */
+    /* Меньше кнопки на мобиле */
     .ctrl-btn {
         width: 42px;
         height: 42px;
@@ -778,6 +790,14 @@ html, body {
 @media (max-width: 480px) {
     .ctrl-btn { width: 40px; height: 40px; font-size: 0.95rem; }
     .controls-overlay { padding: 12px 10px max(14px, env(safe-area-inset-bottom)); }
+
+    .app.has-player .floating-btn {
+        width: 48px;
+        height: 48px;
+        font-size: 1.5rem;
+        bottom: 12px;
+        right: 12px;
+    }
 }
 
 /* Ландшафт на мобиле: чат справа */
@@ -809,6 +829,20 @@ html, body {
     .controls-overlay { padding: 8px 16px max(10px, env(safe-area-inset-bottom)); }
     .progress-row { margin-bottom: 6px; }
     .ctrl-btn { width: 38px; height: 38px; }
+
+    .app.has-player .floating-btn {
+        bottom: 12px;
+        right: 12px;
+        width: 44px;
+        height: 44px;
+        font-size: 1.4rem;
+    }
+}
+
+/* В fullscreen прячем плавающую кнопку */
+.video-stage:fullscreen .floating-btn,
+.video-stage:-webkit-full-screen .floating-btn {
+    display: none !important;
 }
 
 ::-webkit-scrollbar { width: 6px; }
