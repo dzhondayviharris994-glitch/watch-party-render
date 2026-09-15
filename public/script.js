@@ -42,6 +42,7 @@ const controlsOverlay = document.getElementById('controlsOverlay');
 const playPauseBtn = document.getElementById('playPauseBtn');
 const rewindBtn = document.getElementById('rewindBtn');
 const forwardBtn = document.getElementById('forwardBtn');
+const qualityBtn = document.getElementById('qualityBtn');
 const volumeBtn = document.getElementById('volumeBtn');
 const volumeSlider = document.getElementById('volumeSlider');
 const loadNewBtn = document.getElementById('loadNewBtn');
@@ -142,6 +143,13 @@ function createYouTubePlayer(videoId) {
                 setVolume(currentVolume);
                 startSeekUpdater();
                 showControls();
+                // Пытаемся сразу поднять качество
+                try {
+                    if (player.setPlaybackQualityRange) player.setPlaybackQualityRange('hd1080', 'hd1080');
+                    if (player.setPlaybackQuality) player.setPlaybackQuality('hd1080');
+                } catch (e) {}
+                qualityIndex = 0;
+                qualityBtn.textContent = 'HD';
             },
             onStateChange: (e) => {
                 updatePlayButton();
@@ -187,6 +195,7 @@ function createVideoPlayer(url) {
     playerContainer.appendChild(video);
     player = video;
     playerType = 'video';
+    qualityBtn.textContent = 'HD';
     startSeekUpdater();
     showControls();
 }
@@ -323,11 +332,55 @@ function startSeekUpdater() {
 }
 
 // ============================================================
+//  КАЧЕСТВО ВИДЕО (YouTube)
+// ============================================================
+let qualityIndex = 0;
+const QUALITIES = ['hd1080', 'hd720', 'large', 'medium', 'small'];
+const QUALITY_LABELS = {
+    hd1080: '1080p',
+    hd720: '720p',
+    large: '480p',
+    medium: '360p',
+    small: '240p'
+};
+
+function cycleQuality() {
+    if (playerType !== 'youtube' || !player) {
+        showToast('Качество доступно только для YouTube');
+        return;
+    }
+
+    // Узнаём текущее качество и находим его в списке
+    let currentQ = 'medium';
+    try {
+        if (player.getPlaybackQuality) currentQ = player.getPlaybackQuality();
+    } catch (e) {}
+
+    let idx = QUALITIES.indexOf(currentQ);
+    if (idx === -1) idx = 0;
+
+    // Идём вверх по качеству
+    idx = (idx - 1 + QUALITIES.length) % QUALITIES.length;
+    const q = QUALITIES[idx];
+
+    try {
+        if (player.setPlaybackQualityRange) player.setPlaybackQualityRange(q, q);
+        if (player.setPlaybackQuality) player.setPlaybackQuality(q);
+    } catch (e) {
+        console.warn('Quality change failed:', e);
+    }
+
+    qualityBtn.textContent = QUALITY_LABELS[q] || 'HD';
+    showToast(`Качество: ${QUALITY_LABELS[q] || q} (может примениться через пару секунд)`);
+}
+
+// ============================================================
 //  ОБРАБОТЧИКИ UI
 // ============================================================
 playPauseBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePlay(); });
 rewindBtn.addEventListener('click', (e) => { e.stopPropagation(); seekRelative(-10); });
 forwardBtn.addEventListener('click', (e) => { e.stopPropagation(); seekRelative(10); });
+qualityBtn.addEventListener('click', (e) => { e.stopPropagation(); cycleQuality(); });
 
 volumeBtn.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -524,11 +577,11 @@ function addSystemMessage(text) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
+// Отправка сообщения — ТОЛЬКО на сервер, локально НЕ добавляем
 chatSend.addEventListener('click', () => {
     const msg = chatInput.value.trim();
     if (!msg) return;
     socket.emit('chat', { message: msg });
-    addMessage({ message: msg, sender: nickname, own: true });
     chatInput.value = '';
 });
 
@@ -536,7 +589,11 @@ chatInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') chatSend.click();
 });
 
-socket.on('chat', ({ message, sender }) => addMessage({ message, sender, own: false }));
+// Приём сообщения от сервера — определяем "своё/чужое" по senderId
+socket.on('chat', ({ message, sender, senderId }) => {
+    addMessage({ message, sender, own: senderId === socket.id });
+});
+
 socket.on('system', (text) => addSystemMessage(text));
 
 // ============================================================
@@ -639,10 +696,7 @@ function resetAutoHide() {
     autoHideTimer = setTimeout(hideControls, 3000);
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  ПОКАЗ ОВЕРЛЕЯ ПО ДВИЖЕНИЮ МЫШИ / ТАПУ (как в YouTube)
-// ═══════════════════════════════════════════════════════════════
-
+// Показ по движению мыши / тапу
 let lastMoveTime = 0;
 document.addEventListener('mousemove', () => {
     const now = Date.now();
@@ -672,7 +726,7 @@ document.addEventListener('touchstart', (e) => {
 controlsOverlay.addEventListener('mousemove', resetAutoHide);
 topBar.addEventListener('mousemove', resetAutoHide);
 
-// Двойной клик по видео — фуллскрин
+// Двойной клик — фуллскрин
 document.getElementById('videoStage').addEventListener('dblclick', (e) => {
     if (e.target.closest('.controls-overlay')) return;
     if (e.target.closest('.top-bar')) return;
@@ -757,4 +811,5 @@ document.addEventListener('keydown', (e) => {
     else if (e.key === 'f' || e.key === 'F') { fullscreenBtn.click(); }
     else if (e.key === 'm' || e.key === 'M') { volumeBtn.click(); }
     else if (e.key === 'c' || e.key === 'C') { chatToggle.click(); }
+    else if (e.key === 'q' || e.key === 'Q') { cycleQuality(); }
 });
