@@ -1,0 +1,740 @@
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+:root {
+    --bg: #000;
+    --panel: rgba(18, 18, 24, 0.85);
+    --panel-solid: #12121a;
+    --border: rgba(255, 255, 255, 0.08);
+    --text: #eee;
+    --text-muted: #888;
+    --accent: #6366f1;
+    --accent-hover: #818cf8;
+    --danger: #ef4444;
+}
+
+html, body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+}
+
+.app {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+}
+
+/* ============================================================
+   ВИДЕО
+   ============================================================ */
+.video-stage {
+    position: absolute;
+    inset: 0;
+    background: #000;
+    z-index: 1;
+}
+
+.player-container { width: 100%; height: 100%; }
+
+.player-container iframe,
+.player-container video {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+    background: #000;
+}
+
+/* Пустое состояние */
+.empty-state {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    padding: 20px;
+    z-index: 2;
+}
+
+.empty-state.hidden { display: none; }
+.empty-icon { font-size: 5rem; opacity: 0.25; }
+.empty-text { color: var(--text-muted); font-size: 1rem; text-align: center; }
+
+.empty-input-wrap {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    max-width: 600px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.empty-input {
+    flex: 1;
+    min-width: 240px;
+    padding: 14px 18px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text);
+    font-size: 1rem;
+    outline: none;
+    font-family: inherit;
+}
+
+.empty-input:focus { border-color: var(--accent); }
+
+.btn-primary-lg {
+    padding: 14px 24px;
+    border-radius: 12px;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+
+.btn-primary-lg:hover { background: var(--accent-hover); }
+
+/* ============================================================
+   ВЕРХНЯЯ ПАНЕЛЬ
+   ============================================================ */
+.top-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 30;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.top-bar.visible { opacity: 1; pointer-events: auto; }
+
+.room-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.room-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.top-right { display: flex; gap: 8px; }
+
+.top-btn {
+    padding: 8px 14px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.top-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: var(--accent); }
+
+/* ============================================================
+   ОВЕРЛЕЙ УПРАВЛЕНИЯ
+   ============================================================ */
+.controls-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 20px 20px 24px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.5) 60%, transparent);
+    z-index: 25;
+    transform: translateY(100%);
+    opacity: 0;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s;
+    pointer-events: none;
+}
+
+.controls-overlay.visible {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Прогресс-бар */
+.progress-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.time-mini {
+    font-size: 0.8rem;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    min-width: 42px;
+    text-align: center;
+    opacity: 0.85;
+}
+
+.seek-bar {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+    transition: height 0.15s;
+}
+
+.seek-bar:hover { height: 8px; }
+
+.seek-bar::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(0,0,0,0.5);
+    transition: transform 0.15s;
+}
+
+.seek-bar::-webkit-slider-thumb:hover { transform: scale(1.3); }
+.seek-bar::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+    border: none;
+}
+
+/* Кнопки */
+.controls-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.controls-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ctrl-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    color: #fff;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    font-family: inherit;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.ctrl-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.08);
+}
+
+.ctrl-btn:active { transform: scale(0.95); }
+.ctrl-btn.active { background: var(--accent); }
+.ctrl-main { background: rgba(255, 255, 255, 0.2); font-size: 1.3rem; }
+
+/* Громкость */
+.volume-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+}
+
+.volume-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 0;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    transition: width 0.25s ease, opacity 0.25s ease;
+    opacity: 0;
+    margin-left: -4px;
+}
+
+.volume-wrap:hover .volume-slider,
+.volume-wrap.open .volume-slider {
+    width: 90px;
+    opacity: 1;
+    margin-left: 4px;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+}
+
+.volume-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+    border: none;
+}
+
+/* Триггер-зона для показа оверлея */
+.overlay-trigger {
+    position: absolute;
+    inset: 0;
+    z-index: 24;
+    cursor: pointer;
+}
+
+.overlay-trigger.hidden { display: none; }
+
+/* ============================================================
+   БОКОВЫЕ ПАНЕЛИ
+   ============================================================ */
+.side-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 360px;
+    max-width: 100%;
+    background: var(--panel);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 40;
+}
+
+.side-panel.visible { transform: translateX(0); }
+
+.panel-header {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.panel-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.8rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 6px;
+    transition: color 0.2s;
+}
+
+.panel-close:hover { color: var(--text); }
+
+.chat-messages, .history-list, .users-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Чат */
+.chat-message {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    word-wrap: break-word;
+    animation: msgIn 0.25s ease;
+}
+
+@keyframes msgIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.chat-message .sender {
+    display: block;
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 0.78rem;
+    margin-bottom: 4px;
+}
+
+.chat-message.own { background: rgba(99, 102, 241, 0.2); }
+
+.chat-message.system {
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    text-align: center;
+    font-style: italic;
+    padding: 6px 14px;
+}
+
+.chat-input-row {
+    padding: 14px 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
+}
+
+.chat-input {
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text);
+    font-size: 0.95rem;
+    outline: none;
+    font-family: inherit;
+}
+
+.chat-input:focus { border-color: var(--accent); }
+
+.btn-send {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+.btn-send:hover { background: var(--accent-hover); }
+
+/* История */
+.history-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 12px 14px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.history-item:hover { background: rgba(99, 102, 241, 0.2); }
+
+.history-item .title {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.history-item .meta { font-size: 0.75rem; color: var(--text-muted); }
+
+/* Участники */
+.user-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+}
+
+.user-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.user-info { flex: 1; min-width: 0; }
+
+.user-name {
+    font-size: 0.95rem;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-role {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.user-host-badge {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    background: rgba(99, 102, 241, 0.2);
+    color: var(--accent);
+    border-radius: 6px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ============================================================
+   МОДАЛКИ
+   ============================================================ */
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    backdrop-filter: blur(8px);
+    padding: 20px;
+}
+
+.modal.hidden { display: none; }
+
+.modal-content {
+    background: var(--panel-solid);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+    max-width: 440px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8);
+}
+
+.modal-content h2 { font-size: 1.4rem; font-weight: 600; text-align: center; }
+.modal-content h3 { font-size: 1.15rem; font-weight: 600; }
+
+.modal-input {
+    padding: 14px 18px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text);
+    font-size: 1rem;
+    outline: none;
+    font-family: inherit;
+    width: 100%;
+}
+
+.modal-input:focus { border-color: var(--accent); }
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.btn-primary, .btn-secondary {
+    padding: 12px 22px;
+    border-radius: 12px;
+    border: none;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.btn-primary { background: var(--accent); color: #fff; width: 100%; }
+.btn-primary:hover { background: var(--accent-hover); }
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text);
+}
+
+.btn-secondary:hover { background: rgba(255, 255, 255, 0.15); }
+
+/* ============================================================
+   ТОСТ
+   ============================================================ */
+.toast {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(20, 20, 28, 0.95);
+    backdrop-filter: blur(15px);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-size: 0.9rem;
+    opacity: 0;
+    transition: all 0.3s ease;
+    pointer-events: none;
+    z-index: 200;
+    max-width: 90%;
+    text-align: center;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* ============================================================
+   МОБИЛЬНАЯ АДАПТАЦИЯ
+   ============================================================ */
+@media (max-width: 768px) {
+    .top-bar { padding: 12px 14px; }
+    .top-btn { padding: 7px 12px; font-size: 0.8rem; }
+    .room-badge { padding: 5px 12px; font-size: 0.8rem; }
+
+    .controls-overlay {
+        padding: 14px 12px max(16px, env(safe-area-inset-bottom));
+    }
+
+    .progress-row { gap: 8px; margin-bottom: 10px; }
+    .time-mini { font-size: 0.72rem; min-width: 36px; }
+
+    .seek-bar { height: 4px; }
+    .seek-bar::-webkit-slider-thumb { width: 18px; height: 18px; }
+
+    .controls-row { gap: 8px; }
+    .controls-group { gap: 6px; }
+
+    .ctrl-btn {
+        width: 42px;
+        height: 42px;
+        font-size: 1rem;
+    }
+
+    .ctrl-main { font-size: 1.15rem; }
+
+    /* Скрываем кнопки перемотки на маленьких экранах? Нет, оставляем — полезно */
+    /* Громкость — только иконка, слайдер скрыт */
+    .volume-slider {
+        position: absolute;
+        bottom: 50px;
+        right: 0;
+        width: 120px !important;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+        background: rgba(0,0,0,0.8);
+        padding: 8px;
+        border-radius: 8px;
+        height: 8px;
+    }
+
+    .volume-wrap:hover .volume-slider,
+    .volume-wrap.open .volume-slider {
+        width: 120px;
+        opacity: 1;
+    }
+
+    .side-panel { width: 100%; }
+
+    .empty-icon { font-size: 3.5rem; }
+    .empty-text { font-size: 0.9rem; }
+    .empty-input-wrap { flex-direction: column; }
+    .empty-input { min-width: 0; width: 100%; }
+    .btn-primary-lg { width: 100%; }
+
+    .modal-content { padding: 24px; }
+}
+
+@media (max-width: 480px) {
+    .ctrl-btn { width: 40px; height: 40px; font-size: 0.95rem; }
+    .controls-overlay { padding: 12px 10px max(14px, env(safe-area-inset-bottom)); }
+}
+
+/* Мобильная ориентация — ландшафт */
+@media (max-height: 500px) and (orientation: landscape) {
+    .controls-overlay { padding: 8px 16px max(10px, env(safe-area-inset-bottom)); }
+    .progress-row { margin-bottom: 6px; }
+    .ctrl-btn { width: 38px; height: 38px; }
+}
+
+/* Скроллбар */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.25); }
+
+/* Скрытие оверлея при отсутствии видео */
+.controls-overlay.hidden { display: none; }

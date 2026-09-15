@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>Watch Party</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app" id="app">
+
+    <!-- Видео -->
+    <div class="video-stage">
+        <div id="playerContainer" class="player-container"></div>
+        <div class="empty-state" id="emptyState">
+            <div class="empty-icon">🎬</div>
+            <div class="empty-text">Вставь ссылку на YouTube или mp4</div>
+            <div class="empty-input-wrap">
+                <input type="text" id="emptyUrlInput" class="empty-input" placeholder="https://youtube.com/watch?v=... или .mp4">
+                <button id="emptyLoadBtn" class="btn-primary-lg">▶ Загрузить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Верхняя панель: комната + участники + ссылка -->
+    <div class="top-bar" id="topBar">
+        <div class="top-left">
+            <div class="room-badge">
+                <span class="room-dot"></span>
+                <span id="roleLabel">Гость</span>
+            </div>
+        </div>
+        <div class="top-right">
+            <button id="copyLinkBtn" class="top-btn" title="Копировать ссылку">🔗 Ссылка</button>
+            <button id="usersBtn" class="top-btn" title="Участники">
+                👥 <span id="usersCount">1</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Оверлей с управлением -->
+    <div class="controls-overlay" id="controlsOverlay">
+        <div class="progress-row">
+            <span class="time-mini" id="timeCurrentMini">0:00</span>
+            <input type="range" id="seekBar" class="seek-bar" min="0" max="100" step="0.1" value="0">
+            <span class="time-mini" id="timeTotalMini">0:00</span>
+        </div>
+        <div class="controls-row">
+            <div class="controls-group">
+                <button id="playPauseBtn" class="ctrl-btn ctrl-main" title="Плей/Пауза">▶</button>
+                <button id="rewindBtn" class="ctrl-btn" title="-10 сек">⏪</button>
+                <button id="forwardBtn" class="ctrl-btn" title="+10 сек">⏩</button>
+
+                <div class="volume-wrap">
+                    <button id="volumeBtn" class="ctrl-btn" title="Звук">🔊</button>
+                    <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.05" value="1">
+                </div>
+
+                <button id="loadNewBtn" class="ctrl-btn" title="Загрузить новое видео">📥</button>
+            </div>
+
+            <div class="controls-group">
+                <button id="chatToggle" class="ctrl-btn" title="Чат">💬</button>
+                <button id="historyToggle" class="ctrl-btn" title="История">📜</button>
+                <button id="fullscreenBtn" class="ctrl-btn" title="На весь экран">⛶</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Кнопка показать оверлей (когда скрыт) -->
+    <div class="overlay-trigger" id="overlayTrigger"></div>
+
+    <!-- Чат -->
+    <aside class="side-panel chat-panel" id="chatPanel">
+        <div class="panel-header">
+            <span>Чат</span>
+            <button id="chatClose" class="panel-close">×</button>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input-row">
+            <input type="text" id="chatInput" class="chat-input" placeholder="Сообщение...">
+            <button id="chatSend" class="btn-send">→</button>
+        </div>
+    </aside>
+
+    <!-- История -->
+    <aside class="side-panel history-panel" id="historyPanel">
+        <div class="panel-header">
+            <span>История</span>
+            <button id="historyClose" class="panel-close">×</button>
+        </div>
+        <div class="history-list" id="historyList"></div>
+    </aside>
+
+    <!-- Участники -->
+    <aside class="side-panel users-panel" id="usersPanel">
+        <div class="panel-header">
+            <span>Участники</span>
+            <button id="usersClose" class="panel-close">×</button>
+        </div>
+        <div class="users-list" id="usersList"></div>
+    </aside>
+
+    <!-- Модалка загрузки видео -->
+    <div class="modal hidden" id="loadModal">
+        <div class="modal-content">
+            <h3>Загрузить видео</h3>
+            <input type="text" id="modalUrlInput" class="modal-input" placeholder="YouTube или mp4 ссылка...">
+            <div class="modal-actions">
+                <button id="modalCancelBtn" class="btn-secondary">Отмена</button>
+                <button id="modalLoadBtn" class="btn-primary">Загрузить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка ника -->
+    <div class="modal" id="nickModal">
+        <div class="modal-content">
+            <h2>Как тебя зовут?</h2>
+            <input type="text" id="nickInput" class="modal-input" placeholder="Твой ник" maxlength="20">
+            <button id="nickBtn" class="btn-primary">Войти</button>
+        </div>
+    </div>
+
+    <!-- Тост для уведомлений -->
+    <div class="toast" id="toast"></div>
+
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
